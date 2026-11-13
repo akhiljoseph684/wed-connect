@@ -1,226 +1,347 @@
-# WedConnect — Discover. Connect. Plan. Celebrate.
+# 💍 WedConnect
 
-**WedConnect** is an all-in-one, full-stack luxury wedding ecosystem connecting couples, wedding creators, and wedding service providers. It unifies wedding inspiration moodboards (Pinterest-style), social discovery and creator follows (Instagram-style), a comprehensive vendor marketplace, and collaborative project management tools (checklists, budgets, guest RSVPs, day-of timelines).
+### Discover. Connect. Plan. Celebrate.
 
----
+WedConnect is a full-stack wedding inspiration, social community, vendor marketplace, and wedding planning platform built using the MERN stack.
 
-## 1. Technology Stack
+It connects couples, wedding creators, and wedding service providers in one platform, making wedding discovery, collaboration, and planning easier.
+
+## ✨ Features
+
+### 1. Wedding Inspiration & Social Community
+- Discover wedding inspiration and trending posts.
+- Create posts with images and videos.
+- Like and comment on posts.
+- Follow creators and other users.
+- Save posts to personalized collections.
+- Search wedding-related content.
+- Explore wedding categories.
+
+### 2. Creator Platform
+- Create and manage creator profiles.
+- Upload portfolios and showcase creative work.
+- Publish wedding-related content.
+- Manage followers and engagement.
+- Receive collaboration requests.
+- View creator growth analytics.
+
+### 3. Vendor Marketplace
+- Discover wedding service providers.
+- Create and manage business profiles.
+- Manage services and packages.
+- Upload business portfolios.
+- Manage availability.
+- Receive and respond to customer enquiries.
+- Manage customer reviews.
+- Vendor verification system.
+- Business analytics.
+
+### 4. Wedding Planning Workspace
+- Create and manage wedding plans.
+- Wedding overview and countdown.
+- Wedding task management.
+- Budget and expense tracking.
+- Guest list management.
+- RSVP tracking.
+- Wedding inspiration boards.
+- Save and shortlist vendors.
+- Wedding timeline.
+- Collaborate with other members.
+- Owner, Collaborator and Viewer permissions.
+
+### 5. Real-Time Messaging & Notifications
+- Real-time messaging using Socket.IO.
+- Online/offline status.
+- Typing indicators.
+- Message read receipts.
+- Unread message indicators.
+- Real-time notifications.
+- Email notifications.
+- Collaboration invitations.
+
+### 6. Admin Dashboard
+- Platform statistics and analytics.
+- User management.
+- Creator management.
+- Vendor management.
+- Business verification.
+- Content moderation.
+- Report management.
+- Category management.
+- Review moderation.
+- Platform settings.
+- Audit logs.
+
+## 🛠️ Technology Stack
 
 ### Frontend
-- **Framework**: React 18 with Vite
-- **Styling**: Tailwind CSS (custom luxury palette: Warm Ivory `#FAF8F4`, Deep Burgundy `#722F45`, Rose `#B76E79`, Muted Gold `#C5A46D`, Soft Blush `#F4E7E8`, Dark Charcoal `#252329`)
-- **Typography**: Playfair Display (editorial headings) & Inter (body interface)
-- **State Management**: Redux Toolkit (Auth, Wedding Plan, and Notification slices)
-- **Routing**: React Router DOM v6 with lazy route splitting and capability-based route guards
-- **Forms & Validation**: React Hook Form with Zod resolvers
-- **Animations & Icons**: Framer Motion & Lucide React
-- **Real-Time Client**: Socket.IO Client
-- **Notifications**: React Hot Toast
+- React.js
+- Vite
+- JavaScript (ES6+)
+- Tailwind CSS
+- Shadcn UI
+- React Router DOM
+- Redux Toolkit
+- Axios
+- React Hook Form
+- Zod
+- Lucide React
+- Framer Motion
 
 ### Backend
-- **Runtime**: Node.js (ES Modules `"type": "module"`)
-- **Framework**: Express.js
-- **Database**: MongoDB Atlas with Mongoose ODM (27 structured models)
-- **Authentication**: JWT access token + secure HTTP-only refresh tokens, bcrypt password hashing
-- **File Uploads**: Cloudinary with local disk storage fallback
-- **Real-Time Engine**: Socket.IO with authenticated rooms and event handlers
-- **Security**: Helmet, CORS, Morgan, Express-Validator
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT Authentication
+- bcrypt
+- Socket.IO
+- Multer
+- Cloudinary
+- Nodemailer
 
----
+### Deployment & Infrastructure
+- AWS EC2
+- MongoDB Atlas
+- Cloudinary
+- Nginx
+- PM2
 
-## 2. Monorepo Project Structure
+## 📁 Project Structure
 
 ```text
 wedconnect/
+│
 ├── client/
 │   ├── public/
-│   ├── src/
-│   │   ├── assets/
-│   │   ├── components/
-│   │   │   ├── common/        # Button, Input, Modal, Badge, Skeleton, EmptyState
-│   │   │   ├── cards/         # PostCard, VendorCard, CreatorCard, CollectionCard, TaskCard
-│   │   │   ├── layout/        # Navbar, Footer, DashboardHeader, Sidebar
-│   │   │   └── modals/        # CreatePostModal, EnquiryModal, ReviewModal, etc.
-│   │   ├── context/           # SocketContext with presence and live alerts
-│   │   ├── layouts/           # PublicLayout, AuthLayout, UserLayout, WeddingPlannerLayout, VendorLayout, CreatorLayout, AdminLayout
-│   │   ├── pages/
-│   │   │   ├── auth/          # Login, Register, ForgotPassword, ResetPassword, EmailVerification
-│   │   │   ├── public/        # Landing, Explore, Categories, Vendors, Creators, Search, PostDetail
-│   │   │   ├── user/          # Dashboard, Feed, Profile, Collections, Messages, Notifications, Settings
-│   │   │   ├── wedding/       # Overview, Tasks, Budget, Guests, ShortlistedVendors, Timeline, Settings
-│   │   │   ├── vendor/        # Overview, Profile, Services, Portfolio, Enquiries, Reviews, Availability, Analytics
-│   │   │   ├── creator/       # Overview, Profile, Portfolio, Posts, Collaborations, Analytics, Settings
-│   │   │   └── admin/         # Overview, Users, Vendors, Creators, Verifications, Categories, Reports, Audit
-│   │   ├── routes/            # AppRouter.jsx, ProtectedRoute.jsx, RoleRoute.jsx
-│   │   ├── services/          # Centralized Axios API services
-│   │   ├── store/             # Redux store & slices
-│   │   ├── styles/            # Tailwind base & custom luxury styling classes
-│   │   ├── utils/             # Formatters, cn helper
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── package.json
-│   └── vite.config.js
+│   └── src/
+│       ├── assets/
+│       ├── components/
+│       ├── pages/
+│       │   ├── public/
+│       │   ├── auth/
+│       │   ├── user/
+│       │   ├── creator/
+│       │   ├── vendor/
+│       │   ├── wedding-planner/
+│       │   └── admin/
+│       ├── layouts/
+│       ├── routes/
+│       ├── hooks/
+│       ├── services/
+│       ├── store/
+│       │   └── slices/
+│       ├── context/
+│       ├── utils/
+│       ├── constants/
+│       ├── validations/
+│       ├── styles/
+│       ├── App.jsx
+│       └── main.jsx
 │
 ├── server/
 │   ├── src/
-│   │   ├── config/            # db.js, cloudinary.js, socket.js
-│   │   ├── controllers/       # Thin Express controllers (15 modules)
-│   │   ├── database/          # seed.js (comprehensive sample data)
-│   │   ├── middlewares/       # auth, error, validate, upload
-│   │   ├── models/            # 27 Mongoose schemas + barrel index.js
-│   │   ├── routes/            # 20 modular route definitions
-│   │   ├── services/          # Business logic layer
-│   │   ├── utils/             # apiResponse, token
-│   │   └── app.js             # Express app setup & middleware pipeline
-│   ├── test/                  # Node.js built-in test suite (api.test.js)
-│   ├── server.js              # Server entry point + Socket.IO initialization
+│   │   ├── config/
+│   │   ├── models/
+│   │   ├── controllers/
+│   │   ├── services/
+│   │   ├── routes/
+│   │   ├── middlewares/
+│   │   ├── utils/
+│   │   ├── validators/
+│   │   ├── constants/
+│   │   ├── helpers/
+│   │   ├── sockets/
+│   │   ├── templates/
+│   │   ├── jobs/
+│   │   └── app.js
+│   │
+│   ├── server.js
 │   └── package.json
 │
-├── README.md
-└── package.json
+├── .gitignore
+└── README.md
 ```
 
----
+## ⚙️ Installation & Setup
 
-## 3. Environment Variables
+### Prerequisites
 
-### Backend (`server/.env`)
+- Node.js
+- npm
+- MongoDB Atlas account
+- Cloudinary account
+- SMTP email credentials
+
+### 1. Clone the Repository
+
+```bash
+git clone <YOUR_REPOSITORY_URL>
+cd wedconnect
+```
+
+### 2. Install Frontend Dependencies
+
+```bash
+cd client
+npm install
+```
+
+### 3. Install Backend Dependencies
+
+```bash
+cd server
+npm install
+```
+
+### 4. Configure Environment Variables
+
+Create a `.env` file inside the `server` directory.
+
+**Backend — server/.env**
+
 ```env
-PORT=5000
 NODE_ENV=development
+PORT=5000
 CLIENT_URL=http://localhost:5173
-MONGODB_URI=mongodb://localhost:27017/wedconnect
-JWT_ACCESS_SECRET=your_jwt_access_secret_key_12345
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_67890
-JWT_ACCESS_EXPIRY=15m
-JWT_REFRESH_EXPIRY=7d
-CLOUDINARY_CLOUD_NAME=demo
-CLOUDINARY_API_KEY=demo
-CLOUDINARY_API_SECRET=demo
+
+# MongoDB
+MONGODB_URI=your_mongodb_connection_string
+
+# Authentication
+JWT_ACCESS_SECRET=your_access_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+ACCESS_TOKEN_EXPIRES_IN=15m
+REFRESH_TOKEN_EXPIRES_IN=7d
+
+# Cookie Configuration
+COOKIE_SECURE=false
+COOKIE_SAME_SITE=lax
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Nodemailer
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=your_email
+EMAIL_PASS=your_email_password
+EMAIL_FROM=WedConnect <noreply@example.com>
+
+# Frontend URLs
+PASSWORD_RESET_URL=http://localhost:5173/reset-password
+EMAIL_VERIFICATION_URL=http://localhost:5173/verify-email
 ```
 
-### Frontend (`client/.env`)
+Create another `.env` file inside the `client` directory.
+
+**Frontend — client/.env**
+
 ```env
-VITE_API_BASE_URL=http://localhost:5000/api/v1
-VITE_SOCKET_URL=http://localhost:5000
+VITE_API_URL=http://localhost:5000/api/v1
 ```
 
----
+Never commit actual credentials or secret environment variables to GitHub.
 
-## 4. Getting Started & Installation
+### 5. Run the Application
 
-### Step 1: Install Dependencies
+**Start Backend**
+
 ```bash
-# Install backend dependencies
-cd server
-npm install
-
-# Install frontend dependencies
-cd ../client
-npm install
-```
-
-### Step 2: Seed Sample Data
-Ensure MongoDB is running locally (`mongodb://localhost:27017/wedconnect`), then execute:
-```bash
-cd server
-node src/database/seed.js
-```
-
-### Step 3: Run the Development Servers
-```bash
-# Terminal 1 — Start Backend Server (runs on http://localhost:5000)
 cd server
 npm run dev
+```
 
-# Terminal 2 — Start Frontend Client (runs on http://localhost:5173)
+**Start Frontend**
+
+```bash
 cd client
 npm run dev
 ```
 
----
+Frontend: `http://localhost:5173`
 
-## 5. Pre-Seeded Demo Accounts
-Password for all demo accounts is: `Password123!`
+Backend: `http://localhost:5000`
 
-| Role | Email Address | Access Area |
-| :--- | :--- | :--- |
-| **Administrator** | `admin@wedconnect.com` | `/admin/dashboard` |
-| **Wedding Couple** | `couple@wedconnect.com` | `/my-wedding` & `/dashboard` |
-| **Vendor Business** | `vendor@wedconnect.com` | `/vendor/dashboard` |
-| **Wedding Creator** | `creator@wedconnect.com` | `/creator/dashboard` |
-| **Standard User** | `user@wedconnect.com` | `/dashboard` |
+Use the actual scripts defined in the respective package.json files.
 
----
+## 🏗️ Backend Architecture
 
-## 6. Testing
+The backend follows a modular architecture:
 
-### Backend Unit & Integration Tests
-WedConnect uses the native Node.js test runner for zero-dependency API tests:
-```bash
-cd server
-npm test
+```text
+Routes
+   ↓
+Middlewares
+   ↓
+Controllers
+   ↓
+Services
+   ↓
+Models
+   ↓
+MongoDB
 ```
-**Tests Covered:**
-1. Database connectivity & Mongoose schema loading
-2. Category taxonomy seeding and retrieval
-3. User registration and bcrypt password comparison
-4. Inspiration feed pagination and user like states
-5. Wedding Plan workspace aggregation and budget calculations
 
-### Frontend Production Build
-Verify all JSX components, route bundles, and Tailwind CSS compile cleanly:
+- **Routes:** Define API endpoints.
+- **Controllers:** Handle HTTP requests and responses.
+- **Services:** Contain business logic and database operations.
+- **Models:** Define Mongoose schemas and relationships.
+- **Middlewares:** Authentication, authorization and validation.
+- **Utils:** Reusable helper functions.
+- **Config:** Database, Cloudinary and Socket.IO configuration.
+- **Sockets:** Real-time communication.
+- **Templates:** Email templates.
+
+## 🔐 Security
+
+- JWT-based authentication using HTTP-only cookies.
+- Password hashing with bcrypt.
+- Email verification.
+- Secure password reset workflow.
+- Role and capability-based authorization.
+- Business ownership validation.
+- Wedding plan membership permissions.
+- Protected API routes.
+- Input validation and error handling.
+
+## 🚀 Deployment
+
+The application is designed for deployment using:
+
+- **Frontend:** AWS EC2
+- **Backend:** AWS EC2
+- **Database:** MongoDB Atlas
+- **Media Storage:** Cloudinary
+- **Web Server:** Nginx
+- **Process Management:** PM2
+
+Build the frontend:
+
 ```bash
 cd client
 npm run build
 ```
 
----
+Start the backend using PM2:
 
-## 7. AWS Deployment Guide
+```bash
+cd server
+pm2 start server.js --name wedconnect-api
+pm2 save
+```
 
-### Architecture Overview
-- **Frontend**: AWS S3 Static Website Hosting + CloudFront CDN
-- **Backend API**: AWS Elastic Beanstalk or AWS ECS (Fargate) with Application Load Balancer
-- **Database**: MongoDB Atlas (VPC Peering with AWS)
-- **Media**: Cloudinary CDN or Amazon S3 bucket with IAM pre-signed upload URLs
+Configure Nginx, HTTPS, production environment variables and secure cookie settings before going live.
 
-### Deploying Frontend (S3 + CloudFront)
-1. Build static production bundle:
-   ```bash
-   cd client
-   npm run build
-   ```
-2. Sync `client/dist` to Amazon S3:
-   ```bash
-   aws s3 sync dist/ s3://wedconnect-frontend-bucket --delete
-   ```
-3. Invalidate CloudFront Distribution:
-   ```bash
-   aws cloudfront create-invalidation --distribution-id <DIST_ID> --paths "/*"
-   ```
+## 🎯 Project Vision
 
-### Deploying Backend (AWS ECS / Elastic Beanstalk)
-1. Create a `Dockerfile` for `server/`:
-   ```dockerfile
-   FROM node:20-alpine
-   WORKDIR /app
-   COPY package*.json ./
-   RUN npm ci --only=production
-   COPY . .
-   EXPOSE 5000
-   CMD ["node", "server.js"]
-   ```
-2. Build and push image to Amazon ECR:
-   ```bash
-   aws ecr get-login-password | docker login --username AWS --password-stdin <ACCOUNT>.dkr.ecr.<REGION>.amazonaws.com
-   docker build -t wedconnect-server .
-   docker tag wedconnect-server:latest <ACCOUNT>.dkr.ecr.<REGION>.amazonaws.com/wedconnect-server:latest
-   docker push <ACCOUNT>.dkr.ecr.<REGION>.amazonaws.com/wedconnect-server:latest
-   ```
-3. Launch ECS Task Service attached to an ALB target group with HTTPS (AWS Certificate Manager). Set environment variables in AWS Systems Manager Parameter Store or ECS Task Definition.
+WedConnect aims to simplify the wedding planning experience by bringing inspiration, creators, service providers, communication and planning tools together in one connected ecosystem.
+
+Instead of using multiple platforms for discovering ideas, finding vendors and organizing wedding activities, couples can manage everything through WedConnect.
 
 ---
 
-## 8. License & Attribution
-Developed with pride for WedConnect — discovering, connecting, planning, and celebrating extraordinary weddings.
+**WedConnect — Discover. Connect. Plan. Celebrate.** 💍
