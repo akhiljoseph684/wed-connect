@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Heart, User, Mail, Lock, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { setUser, setToken } from '../../store/slices/authSlice.js';
+import { setUser } from '../../store/slices/authSlice.js';
 import authService from '../../services/auth.service.js';
 
 const registerSchema = z.object({
@@ -45,11 +45,8 @@ export default function RegisterPage() {
         isCouple: data.role === 'user' && data.isCouple,
       };
       const res = await authService.register(payload);
-      const { user, accessToken } = res.data;
+      const user = res.data?.user || res.data;
       dispatch(setUser(user));
-      dispatch(setToken(accessToken));
-      localStorage.setItem('wedconnect_access_token', accessToken);
-      localStorage.setItem('wedconnect_user', JSON.stringify(user));
       toast.success('Welcome to WedConnect! 🎉');
       if (user.role === 'admin' || user.role === 'moderator') navigate('/admin/dashboard');
       else if (user.capabilities?.isVendor || user.role === 'vendor') navigate('/vendor/dashboard');

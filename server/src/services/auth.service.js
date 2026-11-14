@@ -1,10 +1,16 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { User, Session } from '../models/index.js';
+import { User, Session, PlatformSettings } from '../models/index.js';
 import { ApiError } from '../utils/apiResponse.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/token.js';
+import { sendPasswordResetEmail, sendEmailVerificationEmail } from '../utils/email.js';
 
 export const register = async ({ firstName, lastName, email, password, isCouple, role }) => {
+  const platformSettings = await PlatformSettings.findOne();
+  if (platformSettings && platformSettings.allowNewUserRegistrations === false) {
+    throw new ApiError(403, 'New registrations are currently disabled by the platform administrator.');
+  }
+
   const existingUser = await User.findOne({ email: email.toLowerCase() });
   if (existingUser) {
     throw new ApiError(400, 'An account with this email address already exists.');
@@ -14,7 +20,7 @@ export const register = async ({ firstName, lastName, email, password, isCouple,
     isCreator: false,
     isVendor: false,
     isPlanner:  false,
-  }
+  };
 
   if(role === "creator"){
     capabilities.isCreator = true;
@@ -28,6 +34,9 @@ export const register = async ({ firstName, lastName, email, password, isCouple,
     capabilities.isPlanner = true;
   }
 
+  const rawVerificationToken = crypto.randomBytes(32).toString('hex');
+  const hashedVerificationToken = crypto.createHash('sha256').update(rawVerificationToken).digest('hex');
+
   const user = await User.create({
     firstName,
     lastName,
@@ -39,7 +48,14 @@ export const register = async ({ firstName, lastName, email, password, isCouple,
       isVendor: Boolean(capabilities.isVendor),
       isPlanner: Boolean(capabilities.isPlanner || true), // defaults to planner enabled for couples
     },
-    isEmailVerified: true, // Auto-verified for frictionless onboarding
+    isEmailVerified: false,
+    emailVerificationToken: hashedVerificationToken,
+    emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  });
+
+  // Asynchronously send email verification without blocking registration
+  sendEmailVerificationEmail(user.email, rawVerificationToken, user.firstName).catch((err) => {
+    console.error(`[Email Verification Warning] Failed to send verification to ${user.email}:`, err.message);
   });
 
   const accessToken = generateAccessToken(user);
@@ -144,7 +160,7 @@ export const requestPasswordReset = async (email) => {
   user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
   await user.save();
 
-  console.log(`[Email Service] Password reset requested for ${user.email}. Token: ${resetToken}`);
+  await sendPasswordResetEmail(user.email, resetToken, user.firstName);
   return true;
 };
 
@@ -166,3 +182,50 @@ export const resetPasswordWithToken = async (token, newPassword) => {
 
   return true;
 };
+
+export const verifyEmailToken = async (token) => {
+  if (!token) {
+    throw new ApiError(400, 'Verification token is required');
+  }
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new ApiError(400, 'Invalid or expired email verification token');
+  }
+
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+  await user.save();
+
+  return user;
+};
+
+export const resendVerificationEmail = async (email) => {
+  if (!email) {
+    throw new ApiError(400, 'Email address is required');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    // Return true silently so user enumeration is mitigated
+    return true;
+  }
+
+  if (user.isEmailVerified) {
+    throw new ApiError(400, 'Your email is already verified. You may sign in directly.');
+  }
+
+  const rawVerificationToken = crypto.randomBytes(32).toString('hex');
+  user.emailVerificationToken = crypto.createHash('sha256').update(rawVerificationToken).digest('hex');
+  user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await user.save();
+
+  await sendEmailVerificationEmail(user.email, rawVerificationToken, user.firstName);
+  return true;
+};
+

@@ -5,7 +5,6 @@ import Button from '../../components/common/Button.jsx';
 import PostCard from '../../components/cards/PostCard.jsx';
 import VendorCard from '../../components/cards/VendorCard.jsx';
 import CreatorCard from '../../components/cards/CreatorCard.jsx';
-import SaveToCollectionModal from '../../components/modals/SaveToCollectionModal.jsx';
 import { postService } from '../../services/post.service.js';
 import { businessService } from '../../services/business.service.js';
 import { creatorService } from '../../services/creator.service.js';
@@ -17,7 +16,6 @@ export const LandingPage = () => {
   const [creators, setCreators] = useState([]);
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [savedModalPost, setSavedModalPost] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -145,11 +143,7 @@ export const LandingPage = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {trendingPosts.map((post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              onSaveClick={(p) => setSavedModalPost(p)}
-            />
+            <PostCard key={post._id} post={post} />
           ))}
         </div>
       </section>
@@ -288,15 +282,6 @@ export const LandingPage = () => {
           </div>
         </div>
       </section>
-
-      {/* Save to Collection Modal */}
-      {savedModalPost && (
-        <SaveToCollectionModal
-          isOpen={!!savedModalPost}
-          onClose={() => setSavedModalPost(null)}
-          post={savedModalPost}
-        />
-      )}
     </div>
   );
 };

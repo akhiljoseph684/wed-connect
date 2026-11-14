@@ -17,6 +17,11 @@ export const replyReview = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, review, 'Reply posted'));
 });
 
+export const updateReview = asyncHandler(async (req, res) => {
+  const review = await reviewService.updateReview(req.params.reviewId, req.user._id, req.body);
+  return res.status(200).json(new ApiResponse(200, review, 'Review updated successfully'));
+});
+
 export const deleteReview = asyncHandler(async (req, res) => {
   const isAdmin = req.user.role === 'admin';
   await reviewService.deleteReview(req.params.reviewId, req.user._id, isAdmin);

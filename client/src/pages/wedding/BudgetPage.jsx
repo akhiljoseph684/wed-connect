@@ -37,11 +37,11 @@ export default function BudgetPage() {
 
   const handleDelete = async (expenseId) => {
     try {
-      await expenseService.deleteExpense(expenseId);
+      await expenseService.deleteExpense(expenseId, planId);
       setExpenses((prev) => prev.filter((e) => e._id !== expenseId));
       toast.success("Expense removed");
     } catch (err) {
-      toast.error("Failed to delete expense");
+      toast.error(err.message || "Failed to delete expense");
     }
   };
 

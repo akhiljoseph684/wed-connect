@@ -15,5 +15,7 @@ router.patch('/verifications/:businessId', adminController.updateVerification);
 router.get('/audit-logs', requireRole('admin'), adminController.getAuditLogs);
 router.get('/reports', adminController.getReports);
 router.patch('/reports/:id/resolve', adminController.resolveReport);
+router.get('/settings', adminController.getPlatformSettings);
+router.patch('/settings', requireRole('admin'), adminController.updatePlatformSettings);
 
 export default router;

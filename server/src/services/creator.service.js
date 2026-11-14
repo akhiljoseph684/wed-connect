@@ -1,7 +1,13 @@
+import mongoose from "mongoose";
 import {
   CreatorProfile,
   User,
   Post,
+  Follow,
+  Like,
+  Comment,
+  CollectionItem,
+  AnalyticsEvent,
   CollaborationRequest,
 } from "../models/index.js";
 import { ApiError } from "../utils/apiResponse.js";
@@ -29,38 +35,94 @@ export const getCreators = async ({
   const [creators, total] = await Promise.all([
     CreatorProfile.find(filter)
       .populate("userId", "firstName lastName avatarUrl bio")
-      .sort({ "stats.followersCount": -1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit),
+      .limit(limit)
+      .lean(),
     CreatorProfile.countDocuments(filter),
   ]);
 
+  // Issue 07: Dynamic aggregate followersCount from Follow collection
+  const creatorUserIds = creators
+    .map((c) => c.userId?._id || c.userId)
+    .filter(Boolean);
+
+  const followCounts = await Follow.aggregate([
+    { $match: { followingId: { $in: creatorUserIds } } },
+    { $group: { _id: "$followingId", count: { $sum: 1 } } },
+  ]);
+
+  const followMap = new Map(
+    followCounts.map((f) => [f._id.toString(), f.count])
+  );
+
+  const enrichedCreators = creators.map((creator) => {
+    const uId = (creator.userId?._id || creator.userId)?.toString();
+    const dynamicFollowers = followMap.get(uId) || 0;
+    return {
+      ...creator,
+      stats: {
+        ...(creator.stats || {}),
+        followersCount: dynamicFollowers,
+      },
+    };
+  });
+
   return {
-    creators,
+    creators: enrichedCreators,
     total,
     page: Number(page),
     pages: Math.ceil(total / limit),
   };
 };
 
-export const getCreatorByUserId = async (u) => {
-  const profile = await CreatorProfile.findOne({
-    $or: [{ userId: u }, { username: u }],
-  }).populate("userId", "firstName lastName avatarUrl bio");
+export const getCreatorByUserId = async (u, currentUserId = null) => {
+  let query = { username: u.toLowerCase() };
+  if (mongoose.Types.ObjectId.isValid(u)) {
+    query = {
+      $or: [{ userId: u }, { username: u.toLowerCase() }],
+    };
+  }
+
+  const profile = await CreatorProfile.findOne(query).populate(
+    "userId",
+    "firstName lastName avatarUrl bio"
+  );
 
   if (!profile) {
     throw new ApiError(404, "Creator profile not found");
   }
 
-  const posts = await Post.find({
-    authorId: profile.userId._id,
-    isPublished: true,
-  })
-    .populate("authorId", "firstName lastName avatarUrl bio")
-    .sort({ createdAt: -1 })
-    .limit(24);
+  const creatorUserId = profile.userId._id;
 
-  return { profile, posts };
+  const [posts, followersCount, followingCount, isFollowing] = await Promise.all([
+    Post.find({
+      authorId: creatorUserId,
+      isPublished: true,
+    })
+      .populate("authorId", "firstName lastName avatarUrl bio")
+      .sort({ createdAt: -1 })
+      .limit(24)
+      .lean(),
+    Follow.countDocuments({ followingId: creatorUserId }),
+    Follow.countDocuments({ followerId: creatorUserId }),
+    currentUserId
+      ? Follow.exists({
+          followerId: currentUserId,
+          followingId: creatorUserId,
+        })
+      : Promise.resolve(false),
+  ]);
+
+  const profileObj = profile.toObject();
+  profileObj.stats = {
+    ...(profileObj.stats || {}),
+    followersCount,
+    followingCount,
+  };
+  profileObj.isFollowing = Boolean(isFollowing);
+
+  return { profile: profileObj, posts };
 };
 
 export const upsertCreatorProfile = async (userId, data) => {
@@ -82,6 +144,8 @@ export const upsertCreatorProfile = async (userId, data) => {
       profile.coverImageUrl = data.coverImageUrl;
     if (data.socialLinks !== undefined)
       profile.socialLinks = { ...profile.socialLinks, ...data.socialLinks };
+    if (data.acceptingBrandCollaborations !== undefined)
+      profile.acceptingBrandCollaborations = Boolean(data.acceptingBrandCollaborations);
 
     await profile.save();
   } else {
@@ -98,6 +162,10 @@ export const upsertCreatorProfile = async (userId, data) => {
       specialties: data.specialties || ["Photography"],
       coverImageUrl: data.coverImageUrl || "",
       socialLinks: data.socialLinks || {},
+      acceptingBrandCollaborations:
+        data.acceptingBrandCollaborations !== undefined
+          ? Boolean(data.acceptingBrandCollaborations)
+          : true,
     });
 
     // Update user capability
@@ -112,7 +180,7 @@ export const addPortfolioItem = async (userId, itemData) => {
   if (!profile)
     throw new ApiError(
       404,
-      "Creator profile not found. Please create one first.",
+      "Creator profile not found. Please create one first."
     );
 
   profile.portfolio.unshift({
@@ -157,38 +225,51 @@ export const deletePortfolioItem = async (userId, itemId) => {
 };
 
 export const getCreatorAnalytics = async (userId) => {
-  const profile = await CreatorProfile.findOne({ userId });
-  const posts = await Post.find({ authorId: userId });
+  const posts = await Post.find({ authorId: userId }).select("_id").lean();
+  const postIds = posts.map((p) => p._id);
 
-  const totalLikes = posts.reduce((sum, p) => sum + (p.likesCount || 0), 0);
-  const totalComments = posts.reduce(
-    (sum, p) => sum + (p.commentsCount || 0),
-    0,
-  );
-  const totalSaves = posts.reduce((sum, p) => sum + (p.savesCount || 0), 0);
+  const [followersCount, totalLikes, totalComments, totalSaves, impressionsCount] =
+    await Promise.all([
+      Follow.countDocuments({ followingId: userId }),
+      Like.countDocuments({ targetId: { $in: postIds }, targetType: "post" }),
+      Comment.countDocuments({ postId: { $in: postIds } }),
+      CollectionItem.countDocuments({ postId: { $in: postIds } }),
+      AnalyticsEvent.countDocuments({
+        targetId: { $in: postIds },
+        eventType: { $in: ["view", "impression"] },
+      }),
+    ]);
 
   return {
-    followersCount: profile?.stats?.followersCount || 0,
+    followersCount,
     totalPosts: posts.length,
     totalLikes,
     totalComments,
     totalSaves,
-    monthlyReach: totalLikes * 12 + 450,
+    monthlyReach: impressionsCount > 0 ? impressionsCount : totalLikes + totalComments * 2 + totalSaves * 3,
   };
 };
 
 export const getCollaborationRequests = async (userId) => {
-  console.log(userId);
   return await CollaborationRequest.find({
     $or: [{ receiverId: userId }, { requesterId: userId }],
   })
-    .populate("requesterId", "firstName lastName avatarUrl")
-    .populate("receiverId", "firstName lastName avatarUrl")
+    .populate("requesterId", "firstName lastName avatarUrl email")
+    .populate("receiverId", "firstName lastName avatarUrl email")
     .populate("businessId", "name logoUrl")
     .sort({ createdAt: -1 });
 };
 
 export const createCollaborationRequest = async (requesterId, data) => {
+  // Issue 32: Check if receiver creator is accepting collaborations
+  const targetCreator = await CreatorProfile.findOne({ userId: data.receiverId });
+  if (targetCreator && targetCreator.acceptingBrandCollaborations === false) {
+    throw new ApiError(
+      400,
+      "This creator is currently not accepting new brand collaboration requests."
+    );
+  }
+
   return await CollaborationRequest.create({
     requesterId,
     receiverId: data.receiverId,
@@ -198,4 +279,44 @@ export const createCollaborationRequest = async (requesterId, data) => {
     proposedDate: data.proposedDate,
     compensationType: data.compensationType || "paid",
   });
+};
+
+export const updateCollaborationStatus = async (requestId, userId, status) => {
+  const validStatuses = ["accepted", "declined", "cancelled", "completed"];
+  if (!validStatuses.includes(status)) {
+    throw new ApiError(400, `Invalid status. Must be one of: ${validStatuses.join(", ")}`);
+  }
+
+  const request = await CollaborationRequest.findById(requestId);
+  if (!request) {
+    throw new ApiError(404, "Collaboration request not found");
+  }
+
+  const isReceiver = request.receiverId.toString() === userId.toString();
+  const isRequester = request.requesterId.toString() === userId.toString();
+
+  if (!isReceiver && !isRequester) {
+    throw new ApiError(403, "You are not authorized to update this collaboration request.");
+  }
+
+  if (status === "accepted" || status === "declined") {
+    if (!isReceiver) {
+      throw new ApiError(403, "Only the recipient can accept or decline a collaboration request.");
+    }
+  }
+
+  if (status === "cancelled") {
+    if (!isRequester) {
+      throw new ApiError(403, "Only the requester can cancel a pending collaboration request.");
+    }
+  }
+
+  request.status = status;
+  await request.save();
+
+  return await request.populate([
+    { path: "requesterId", select: "firstName lastName avatarUrl email" },
+    { path: "receiverId", select: "firstName lastName avatarUrl email" },
+    { path: "businessId", select: "name logoUrl" },
+  ]);
 };

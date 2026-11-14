@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, Inbox, Star, Eye, ShieldCheck, Plus, ChevronRight, TrendingUp } from 'lucide-react';
+import { Store, Inbox, Star, Eye, ShieldCheck, Plus, ChevronRight, TrendingUp, Bookmark, Calendar } from 'lucide-react';
 import businessService from '../../services/business.service.js';
 import enquiryService from '../../services/enquiry.service.js';
 import reviewService from '../../services/review.service.js';
@@ -8,6 +8,7 @@ import { formatRelativeTime } from '../../utils/formatters.js';
 
 export default function VendorOverviewPage() {
   const [business, setBusiness] = useState(null);
+  const [stats, setStats] = useState(null);
   const [enquiries, setEnquiries] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,14 +18,19 @@ export default function VendorOverviewPage() {
       setLoading(true);
       try {
         const bRes = await businessService.getMyBusiness();
-        const b = bRes.data || bRes.data;
+        const b = bRes.data?.business || bRes.data;
         setBusiness(b);
 
         if (b?._id) {
-          const [eRes, rRes] = await Promise.allSettled([
+          const [statsRes, eRes, rRes] = await Promise.allSettled([
+            businessService.getVendorDashboardStats(b._id),
             enquiryService.getReceivedEnquiries(),
             reviewService.getReviews(b._id),
           ]);
+
+          if (statsRes.status === 'fulfilled') {
+            setStats(statsRes.value.data || null);
+          }
           if (eRes.status === 'fulfilled') {
             setEnquiries(eRes.value.data || []);
           }
@@ -41,8 +47,11 @@ export default function VendorOverviewPage() {
     fetchVendorData();
   }, []);
 
-  const pendingEnquiries = enquiries.filter(e => e.status === 'pending');
-  const avgRating = business?.rating?.average || 5.0;
+  const pendingEnquiries = enquiries.filter((e) => ['new', 'pending'].includes(e.status));
+  const avgRating = stats?.averageRating ?? business?.averageRating ?? 5.0;
+  const reviewCount = stats?.reviewCount ?? reviews.length ?? 0;
+  const totalEnquiries = stats?.enquiriesReceived ?? enquiries.length ?? 0;
+  const profileVisits = stats?.profileVisits ?? 0;
 
   if (loading) {
     return (
@@ -64,11 +73,15 @@ export default function VendorOverviewPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-gold text-xs font-semibold uppercase tracking-wider">
-              {business?.category?.name || 'Wedding Vendor'}
+              {business?.category?.name || 'Wedding Artisan'}
             </span>
-            {business?.verificationStatus === 'approved' && (
+            {business?.verificationStatus === 'approved' ? (
               <span className="flex items-center gap-1 text-[11px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
                 <ShieldCheck className="w-3 h-3" /> Verified Business
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[11px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">
+                Verification Pending
               </span>
             )}
           </div>
@@ -76,20 +89,20 @@ export default function VendorOverviewPage() {
             {business?.name || 'Your Business Storefront'}
           </h1>
           <p className="text-gray-400 text-sm mt-1 max-w-xl">
-            {business?.tagline || 'Manage your bookings, packages, and client communications.'}
+            {business?.tagline || 'Manage your bookings, service packages, and luxury client inquiries.'}
           </p>
         </div>
 
         <div className="flex gap-2">
           <Link
             to="/vendor/services"
-            className="flex items-center gap-1.5 px-4 py-2 bg-gold text-charcoal rounded-xl text-xs font-bold hover:bg-gold/90 transition-all shadow-soft"
+            className="flex items-center gap-1.5 px-4 py-2 bg-gold text-charcoal rounded-xl text-xs font-bold hover:bg-gold/90 transition shadow-soft"
           >
             <Plus className="w-3.5 h-3.5" /> New Package
           </Link>
           <Link
             to="/vendor/profile"
-            className="px-4 py-2 bg-white/10 text-white rounded-xl text-xs font-medium hover:bg-white/20 transition-all"
+            className="px-4 py-2 bg-white/10 text-white rounded-xl text-xs font-medium hover:bg-white/20 transition"
           >
             Edit Profile
           </Link>
@@ -98,56 +111,58 @@ export default function VendorOverviewPage() {
 
       {/* KPI Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100">
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-sand/60">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-burgundy/10 text-burgundy flex items-center justify-center">
               <Inbox className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold text-burgundy">{pendingEnquiries.length} New</span>
+            <span className="text-xs font-bold text-burgundy">{pendingEnquiries.length} Pending</span>
           </div>
-          <p className="text-xs text-gray-500 mt-4">Total Inquiries</p>
-          <p className="font-bold text-xl text-charcoal mt-0.5">{enquiries.length}</p>
+          <p className="text-xs text-mutedGray mt-4">Total Inquiries</p>
+          <p className="font-bold text-2xl text-charcoal mt-0.5 font-serif">{totalEnquiries}</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100">
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-sand/60">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
               <Star className="w-5 h-5 fill-amber-500" />
             </div>
-            <span className="text-xs font-bold text-amber-600">{reviews.length} reviews</span>
+            <span className="text-xs font-bold text-amber-600">{reviewCount} reviews</span>
           </div>
-          <p className="text-xs text-gray-500 mt-4">Average Rating</p>
-          <p className="font-bold text-xl text-charcoal mt-0.5">{avgRating.toFixed(1)} / 5.0</p>
+          <p className="text-xs text-mutedGray mt-4">Average Rating</p>
+          <p className="font-bold text-2xl text-charcoal mt-0.5 font-serif">
+            {avgRating > 0 ? Number(avgRating).toFixed(1) : '5.0'} / 5.0
+          </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100">
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-sand/60">
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-rose/10 text-rose flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-rose/10 text-burgundy flex items-center justify-center">
               <Store className="w-5 h-5" />
             </div>
             <span className="text-xs font-bold text-emerald-600">Active</span>
           </div>
-          <p className="text-xs text-gray-500 mt-4">Packages Listed</p>
-          <p className="font-bold text-xl text-charcoal mt-0.5">{business?.services?.length || 0}</p>
+          <p className="text-xs text-mutedGray mt-4">Services Listed</p>
+          <p className="font-bold text-2xl text-charcoal mt-0.5 font-serif">
+            {stats?.serviceStatistics?.totalServices ?? (business?.services?.length || 0)}
+          </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100">
+        <div className="bg-white p-5 rounded-2xl shadow-soft border border-sand/60">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <Eye className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> +12%
-            </span>
+            <span className="text-xs font-bold text-emerald-600">Verified</span>
           </div>
-          <p className="text-xs text-gray-500 mt-4">Profile Impressions</p>
-          <p className="font-bold text-xl text-charcoal mt-0.5">{business?.stats?.views || 142}</p>
+          <p className="text-xs text-mutedGray mt-4">Profile Impressions</p>
+          <p className="font-bold text-2xl text-charcoal mt-0.5 font-serif">{profileVisits}</p>
         </div>
       </div>
 
       {/* Recent Enquiries & Reviews */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 space-y-4">
+        <div className="bg-white rounded-2xl p-6 shadow-soft border border-sand/60 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-playfair text-lg font-bold text-charcoal">Recent Inquiries</h2>
             <Link to="/vendor/enquiries" className="text-xs font-semibold text-burgundy hover:underline">
@@ -156,58 +171,62 @@ export default function VendorOverviewPage() {
           </div>
           {enquiries.slice(0, 4).length > 0 ? (
             <div className="divide-y divide-gray-100">
-              {enquiries.slice(0, 4).map(enq => (
+              {enquiries.slice(0, 4).map((enq) => (
                 <Link
                   key={enq._id}
                   to={`/vendor/enquiries/${enq._id}`}
-                  className="py-3 flex items-center justify-between hover:bg-gray-50/50 rounded-lg px-2 transition-colors block"
+                  className="py-3 flex items-center justify-between hover:bg-sand/10 px-2 rounded-lg transition"
                 >
-                  <div>
-                    <p className="font-semibold text-sm text-charcoal">
-                      {enq.coupleName || enq.sender?.firstName || 'Couple'}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-charcoal truncate">
+                      {enq.coupleNames || enq.coupleName || 'Couple Inquiry'}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{enq.weddingDate ? `Wedding: ${new Date(enq.weddingDate).toLocaleDateString()}` : 'Date TBD'}</p>
+                    <p className="text-xs text-mutedGray flex items-center gap-1 mt-0.5">
+                      <Calendar className="w-3 h-3 text-burgundy" />
+                      {enq.weddingDate ? new Date(enq.weddingDate).toLocaleDateString() : 'Date TBD'}
+                    </p>
                   </div>
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${
-                    enq.status === 'confirmed'
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : enq.status === 'pending'
-                      ? 'bg-amber-50 text-amber-600'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}>
-                    {enq.status || 'Pending'}
-                  </span>
+                  <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-400 py-6 text-center">No client inquiries yet</p>
+            <div className="text-center py-10 text-mutedGray text-xs">No client inquiries received yet.</div>
           )}
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-soft border border-gray-100 space-y-4">
+        <div className="bg-white rounded-2xl p-6 shadow-soft border border-sand/60 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-playfair text-lg font-bold text-charcoal">Latest Reviews</h2>
-            <Link to="/vendor/reviews" className="text-xs font-semibold text-burgundy hover:underline">
-              View all ({reviews.length})
+            <h2 className="font-playfair text-lg font-bold text-charcoal">Client Reviews ({reviewCount})</h2>
+            <Link to="/vendor/profile" className="text-xs font-semibold text-burgundy hover:underline">
+              Storefront View
             </Link>
           </div>
-          {reviews.slice(0, 4).length > 0 ? (
-            <div className="divide-y divide-gray-100">
-              {reviews.slice(0, 4).map(rev => (
-                <div key={rev._id} className="py-3 space-y-1">
+          {reviews.slice(0, 3).length > 0 ? (
+            <div className="space-y-3">
+              {reviews.slice(0, 3).map((r) => (
+                <div key={r._id} className="p-3 bg-sand/15 rounded-xl border border-sand/40 space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sm text-charcoal">{rev.authorId?.firstName || 'Couple'}</p>
-                    <div className="flex items-center gap-1 text-amber-500 text-xs">
-                      <Star className="w-3.5 h-3.5 fill-amber-500" /> {rev.rating}
+                    <span className="text-xs font-semibold text-charcoal">
+                      {r.userId?.firstName} {r.userId?.lastName}
+                    </span>
+                    <div className="flex text-gold">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-3 h-3 ${
+                            i < r.rating ? 'fill-current text-gold' : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 line-clamp-2">{rev.content}</p>
+                  <p className="text-xs text-charcoal/80 line-clamp-2">{r.comment || r.content}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-400 py-6 text-center">No reviews submitted yet</p>
+            <div className="text-center py-10 text-mutedGray text-xs">No reviews submitted yet.</div>
           )}
         </div>
       </div>

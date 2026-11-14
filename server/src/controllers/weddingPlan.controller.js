@@ -42,6 +42,21 @@ export const deleteTimelineEvent = asyncHandler(async (req, res) => {
 });
 
 export const addMember = asyncHandler(async (req, res) => {
-  const member = await weddingPlanService.addPlanMember(req.params.planId, req.body.email, req.body.role);
+  const member = await weddingPlanService.addPlanMember(req.params.planId, req.body.email, req.body.role, req.user);
   return res.status(201).json(new ApiResponse(201, member, 'Member added to wedding plan'));
+});
+
+export const removeMember = asyncHandler(async (req, res) => {
+  await weddingPlanService.removePlanMember(req.params.planId, req.params.memberId, req.user._id);
+  return res.status(200).json(new ApiResponse(200, null, 'Member removed from wedding plan'));
+});
+
+export const updateMemberRole = asyncHandler(async (req, res) => {
+  const updated = await weddingPlanService.updatePlanMemberRole(
+    req.params.planId,
+    req.params.memberId,
+    req.body.role,
+    req.user._id
+  );
+  return res.status(200).json(new ApiResponse(200, updated, 'Member permissions updated'));
 });

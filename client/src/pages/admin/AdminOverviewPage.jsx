@@ -40,7 +40,7 @@ export default function AdminOverviewPage() {
             <span className="text-xs text-gray-500">Registered Users</span>
             <Users className="w-4 h-4 text-burgundy" />
           </div>
-          <p className="font-bold text-2xl text-charcoal mt-2">{stats?.usersCount || stats?.totalUsers || 248}</p>
+          <p className="font-bold text-2xl text-charcoal mt-2 font-serif">{stats?.totalUsers ?? stats?.usersCount ?? 0}</p>
           <span className="text-[11px] text-gray-400 mt-1 block">Couples & Members</span>
         </Link>
 
@@ -49,7 +49,7 @@ export default function AdminOverviewPage() {
             <span className="text-xs text-gray-500">Active Vendors</span>
             <Store className="w-4 h-4 text-gold" />
           </div>
-          <p className="font-bold text-2xl text-charcoal mt-2">{stats?.vendorsCount || stats?.totalVendors || 36}</p>
+          <p className="font-bold text-2xl text-charcoal mt-2 font-serif">{stats?.totalVendors ?? stats?.vendorsCount ?? 0}</p>
           <span className="text-[11px] text-gray-400 mt-1 block">Wedding Businesses</span>
         </Link>
 
@@ -58,7 +58,7 @@ export default function AdminOverviewPage() {
             <span className="text-xs text-gray-500">Creator Accounts</span>
             <Camera className="w-4 h-4 text-rose" />
           </div>
-          <p className="font-bold text-2xl text-charcoal mt-2">{stats?.creatorsCount || stats?.totalCreators || 19}</p>
+          <p className="font-bold text-2xl text-charcoal mt-2 font-serif">{stats?.totalCreators ?? stats?.creatorsCount ?? 0}</p>
           <span className="text-[11px] text-gray-400 mt-1 block">Verified Creators</span>
         </Link>
 
@@ -67,7 +67,7 @@ export default function AdminOverviewPage() {
             <span className="text-xs text-gray-500">Pending Verifications</span>
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="font-bold text-2xl text-charcoal mt-2">{stats?.pendingVerifications || 4}</p>
+          <p className="font-bold text-2xl text-charcoal mt-2 font-serif">{stats?.pendingVerifications ?? 0}</p>
           <span className="text-[11px] text-amber-600 font-semibold mt-1 block">Requires Review</span>
         </Link>
       </div>

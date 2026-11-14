@@ -2,7 +2,7 @@ import * as userService from '../services/user.service.js';
 import { ApiResponse, asyncHandler } from '../utils/apiResponse.js';
 
 export const getUserProfile = asyncHandler(async (req, res) => {
-  const user = await userService.getUserById(req.params.userId);
+  const user = await userService.getUserById(req.params.userId, req?.user?._id);
   return res.status(200).json(new ApiResponse(200, user, 'User profile retrieved'));
 });
 
@@ -18,7 +18,7 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 
 export const getUserPosts = asyncHandler(async (req, res) => {
   const { page, limit } = req.query;
-  const result = await userService.getUserPosts(req.params.userId, { page, limit });
+  const result = await userService.getUserPosts(req.params.userId, { page, limit, currentUserId: req.user?._id, });
   return res.status(200).json(new ApiResponse(200, result, 'User posts retrieved'));
 });
 

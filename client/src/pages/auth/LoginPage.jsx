@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Heart, Mail, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { setUser, setToken } from '../../store/slices/authSlice.js';
+import { setUser } from '../../store/slices/authSlice.js';
 import authService from '../../services/auth.service.js';
 
 const loginSchema = z.object({
@@ -33,11 +33,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await authService.login(data);
-      const { user, accessToken } = res.data;
+      const user = res.data?.user || res.data;
       dispatch(setUser(user));
-      dispatch(setToken(accessToken));
-      localStorage.setItem('wedconnect_access_token', accessToken);
-      localStorage.setItem('wedconnect_user', JSON.stringify(user));
       toast.success(`Welcome back, ${user.firstName}!`);
       
       if (user.role === 'admin' || user.role === 'moderator') navigate('/admin/dashboard');

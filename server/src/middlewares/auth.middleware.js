@@ -1,6 +1,6 @@
 import { ApiError } from '../utils/apiResponse.js';
 import { verifyAccessToken } from '../utils/token.js';
-import { User, Business, WeddingPlan, WeddingPlanMember } from '../models/index.js';
+import { User, Business, WeddingPlan, WeddingPlanMember, PlatformSettings } from '../models/index.js';
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -30,6 +30,21 @@ export const authenticate = async (req, res, next) => {
 
     if (user.isSuspended) {
       return next(new ApiError(403, `Account suspended: ${user.suspensionReason || 'Contact support'}`));
+    }
+
+    // Check platform settings (maintenance mode and email verification)
+    const platformSettings = await PlatformSettings.findOne();
+    if (platformSettings) {
+      if (platformSettings.maintenanceMode && user.role !== 'admin') {
+        return next(
+          new ApiError(503, 'WedConnect is currently undergoing planned maintenance. Please check back shortly.')
+        );
+      }
+      if (platformSettings.enforceEmailVerification && !user.isEmailVerified && user.role !== 'admin') {
+        return next(
+          new ApiError(403, 'Email verification is required by platform policy. Please verify your email to proceed.')
+        );
+      }
     }
 
     req.user = user;
@@ -141,6 +156,11 @@ export const requireWeddingPlanAccess = async (req, res, next) => {
     const member = await WeddingPlanMember.findOne({ planId, userId: req.user._id, status: 'accepted' });
     if (!member) {
       return next(new ApiError(403, 'You do not have permission to view or manage this wedding plan.'));
+    }
+
+    // Enforce viewer restrictions (block write operations for role === 'viewer')
+    if (member.role === 'viewer' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      return next(new ApiError(403, 'Collaborators with viewer permissions have read-only access.'));
     }
 
     req.weddingPlan = plan;

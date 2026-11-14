@@ -1,11 +1,11 @@
 import { Router } from "express";
 import * as creatorController from "../controllers/creator.controller.js";
-import { authenticate } from "../middlewares/auth.middleware.js";
+import { authenticate, optionalAuth } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 router.get("/", creatorController.getCreators);
-router.get("/profile/:username", creatorController.getCreatorByUserId);
+router.get("/profile/:username", optionalAuth, creatorController.getCreatorByUserId);
 router.post("/profile", authenticate, creatorController.upsertProfile);
 router.patch("/profile", authenticate, creatorController.upsertProfile);
 
@@ -27,6 +27,11 @@ router.post(
   "/collaborations",
   authenticate,
   creatorController.createCollaboration,
+);
+router.patch(
+  "/collaborations/:id/status",
+  authenticate,
+  creatorController.updateCollaborationStatus,
 );
 
 export default router;

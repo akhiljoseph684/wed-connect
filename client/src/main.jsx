@@ -17,7 +17,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Toaster
             position="top-right"
             toastOptions={{
-              duration: 4000,
+              duration: 1000,
               style: {
                 background: '#FDFAF6',
                 color: '#2C2C2C',

@@ -76,7 +76,7 @@ export default function WeddingPlansListPage() {
                     <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-burgundy group-hover:translate-x-1 transition-all" />
                   </div>
                   <h2 className="font-playfair text-xl font-bold text-charcoal">{plan.title}</h2>
-                  <p className="text-sm text-gray-500 mt-1">{plan.coupleNames?.partner1} & {plan.coupleNames?.partner2}</p>
+                  <p className="text-sm text-gray-500 mt-1">{plan.partner1Name} & {plan.partner2Name}</p>
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-gray-100 space-y-1.5 text-xs text-gray-500">
@@ -87,13 +87,12 @@ export default function WeddingPlansListPage() {
                   {plan.location?.city && (
                     <div className="flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-burgundy" />
-                      <span>{plan.location.city}, {plan.location.country}</span>
+                      <span>{plan.city}, {plan.country}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between pt-1">
-                    <span>Budget: <strong>{formatCurrency(plan.budget?.total || 0)}</strong></span>
-                    {console.log(plan)}
-                    <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {plan?.guestsCount || 0} guests</span>
+                    <span>Budget: <strong>{formatCurrency(plan.totalBudget || 0)}</strong></span>
+                    <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {plan?.guestCount || 0} guests</span>
                   </div>
                 </div>
               </div>

@@ -63,7 +63,51 @@ export const addPortfolio = asyncHandler(async (req, res) => {
   return res.status(201).json(new ApiResponse(201, item, 'Portfolio image added'));
 });
 
+export const deletePortfolio = asyncHandler(async (req, res) => {
+  await businessService.deletePortfolioItem(req.params.businessId, req.user._id, req.params.itemId);
+  return res.status(200).json(new ApiResponse(200, null, 'Portfolio item deleted'));
+});
+
 export const updateAvailability = asyncHandler(async (req, res) => {
   const availability = await businessService.updateAvailability(req.params.businessId, req.user._id, req.body);
   return res.status(200).json(new ApiResponse(200, availability, 'Availability updated'));
+});
+
+export const addAvailabilityEntry = asyncHandler(async (req, res) => {
+  const availability = await businessService.addAvailabilityEntry(req.params.businessId, req.user._id, req.body);
+  return res.status(201).json(new ApiResponse(201, availability, 'Availability entry added'));
+});
+
+export const updateAvailabilityEntry = asyncHandler(async (req, res) => {
+  const availability = await businessService.updateAvailabilityEntry(
+    req.params.businessId,
+    req.user._id,
+    req.params.entryId,
+    req.body
+  );
+  return res.status(200).json(new ApiResponse(200, availability, 'Availability entry updated'));
+});
+
+export const deleteAvailabilityEntry = asyncHandler(async (req, res) => {
+  const availability = await businessService.deleteAvailabilityEntry(
+    req.params.businessId,
+    req.user._id,
+    req.params.entryId
+  );
+  return res.status(200).json(new ApiResponse(200, availability, 'Availability entry removed'));
+});
+
+export const getVendorDashboardStats = asyncHandler(async (req, res) => {
+  const stats = await businessService.getVendorDashboardStats(req.params.businessId, req.user._id);
+  return res.status(200).json(new ApiResponse(200, stats, 'Vendor dashboard statistics'));
+});
+
+export const getVendorAnalytics = asyncHandler(async (req, res) => {
+  const analytics = await businessService.getVendorAnalytics(req.params.businessId, req.user._id);
+  return res.status(200).json(new ApiResponse(200, analytics, 'Vendor analytics data'));
+});
+
+export const updateVendorSettings = asyncHandler(async (req, res) => {
+  const settings = await businessService.updateVendorSettings(req.params.businessId, req.user._id, req.body);
+  return res.status(200).json(new ApiResponse(200, settings, 'Vendor settings updated'));
 });

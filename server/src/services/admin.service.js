@@ -1,4 +1,4 @@
-import { User, Business, CreatorProfile, Post, Review, Report, AuditLog, Notification } from '../models/index.js';
+import { User, Business, CreatorProfile, Post, Review, Report, AuditLog, Notification, PlatformSettings } from '../models/index.js';
 import { ApiError } from '../utils/apiResponse.js';
 import { sendNotificationToUser } from '../config/socket.js';
 
@@ -99,6 +99,16 @@ export const updateVerificationStatus = async (businessId, { status, notes = '' 
   business.verificationNotes = notes;
   if (status === 'approved') {
     business.verifiedAt = new Date();
+    await User.findByIdAndUpdate(business.ownerId, { 'capabilities.isVendor': true });
+  } else {
+    const hasOtherApproved = await Business.exists({
+      ownerId: business.ownerId,
+      _id: { $ne: businessId },
+      verificationStatus: 'approved',
+    });
+    if (!hasOtherApproved) {
+      await User.findByIdAndUpdate(business.ownerId, { 'capabilities.isVendor': false });
+    }
   }
   await business.save();
 
@@ -176,3 +186,44 @@ export const resolveReport = async (reportId, { status = 'resolved', resolutionN
 
   return report;
 };
+
+export const getPlatformSettings = async () => {
+  let settings = await PlatformSettings.findOne();
+  if (!settings) {
+    settings = await PlatformSettings.create({
+      allowNewUserRegistrations: true,
+      enforceEmailVerification: false,
+      maintenanceMode: false,
+    });
+  }
+  return settings;
+};
+
+export const updatePlatformSettings = async (updateData, adminId) => {
+  let settings = await PlatformSettings.findOne();
+  if (!settings) {
+    settings = await PlatformSettings.create(updateData);
+  } else {
+    if (updateData.allowNewUserRegistrations !== undefined) {
+      settings.allowNewUserRegistrations = Boolean(updateData.allowNewUserRegistrations);
+    }
+    if (updateData.enforceEmailVerification !== undefined) {
+      settings.enforceEmailVerification = Boolean(updateData.enforceEmailVerification);
+    }
+    if (updateData.maintenanceMode !== undefined) {
+      settings.maintenanceMode = Boolean(updateData.maintenanceMode);
+    }
+    await settings.save();
+  }
+
+  await AuditLog.create({
+    actorId: adminId,
+    action: 'UPDATE_PLATFORM_SETTINGS',
+    targetType: 'PlatformSettings',
+    targetId: settings._id,
+    metadata: updateData,
+  });
+
+  return settings;
+};
+

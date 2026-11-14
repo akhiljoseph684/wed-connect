@@ -16,7 +16,8 @@ export default function ShortlistedVendorsPage() {
     try {
       const res = await weddingPlanService.getPlanDetails(planId);
       const plan = res.data?.plan || res.data;
-      setVendors(plan?.savedVendors || []);
+      console.log(res)
+      setVendors(plan?.savedVendorIds || []);
     } catch (err) {
       navigate("/my-wedding/new")
     } finally {
@@ -62,11 +63,11 @@ export default function ShortlistedVendorsPage() {
       ) : vendors.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {vendors.map(item => {
-            const vendor = item.business || item;
+            const vendor = item;
             if (!vendor?._id) return null;
             return (
               <div key={vendor._id} className="relative group">
-                <VendorCard vendor={vendor} />
+                <VendorCard business={vendor} />
                 <button
                   onClick={() => handleRemove(vendor._id)}
                   className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur rounded-full text-gray-400 hover:text-red-500 hover:bg-white shadow-soft transition-all z-10"

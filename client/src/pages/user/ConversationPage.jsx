@@ -1,27 +1,27 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { ArrowLeft, Send } from 'lucide-react';
-import toast from 'react-hot-toast';
-import messageService from '../../services/message.service.js';
-import { useSocket } from '../../context/SocketContext.jsx';
-import { formatRelativeTime } from '../../utils/formatters.js';
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { ArrowLeft, Send } from "lucide-react";
+import toast from "react-hot-toast";
+import messageService from "../../services/message.service.js";
+import { useSocket } from "../../context/SocketContext.jsx";
+import { formatRelativeTime } from "../../utils/formatters.js";
 
 export default function ConversationPage() {
   const { conversationId } = useParams();
   const navigate = useNavigate();
-  const { user } = useSelector(state => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const { socket } = useSocket();
 
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -36,8 +36,8 @@ export default function ConversationPage() {
         setMessages(msgRes.data?.messages || []);
         messageService.markAsRead(conversationId).catch(() => {});
       } catch (err) {
-        toast.error('Failed to load conversation');
-        navigate('/messages');
+        toast.error("Failed to load conversation");
+        navigate("/messages");
       } finally {
         setLoading(false);
       }
@@ -49,75 +49,166 @@ export default function ConversationPage() {
     scrollToBottom();
   }, [messages]);
 
-  // Real-time socket events
   useEffect(() => {
     if (!socket || !conversationId) return;
 
-    socket.emit('conversation:join', { conversationId });
+    socket.emit("conversation:join", { conversationId });
 
     const handleNewMessage = (newMsg) => {
-      if (newMsg.conversationId === conversationId || newMsg.conversation === conversationId) {
-        setMessages(prev => [...prev, newMsg]);
-        messageService.markAsRead(conversationId).catch(() => {});
+      const incomingConversationId =
+        newMsg.conversationId?._id ||
+        newMsg.conversationId ||
+        newMsg.conversation;
+
+      if (String(incomingConversationId) !== String(conversationId)) {
+        return;
       }
+
+      setMessages((prev) => {
+        if (prev.some((msg) => msg._id === newMsg._id)) {
+          return prev;
+        }
+
+        return [...prev, newMsg];
+      });
+
+      messageService.markAsRead(conversationId).catch(() => {});
     };
 
-    socket.on('message:new', handleNewMessage);
+    socket.on("message:new", handleNewMessage);
 
     return () => {
-      socket.off('message:new', handleNewMessage);
+      socket.off("message:new", handleNewMessage);
     };
   }, [socket, conversationId]);
 
+  useEffect(() => {
+    if (!socket || !conversationId) return;
+
+    const handleMessagesRead = ({ conversationId: readConversationId }) => {
+      if (String(readConversationId) !== String(conversationId)) return;
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          String(msg.senderId?._id || msg.senderId) === String(user?._id)
+            ? { ...msg, isRead: true }
+            : msg,
+        ),
+      );
+    };
+
+    socket.on("messages:read", handleMessagesRead);
+
+    return () => {
+      socket.off("messages:read", handleMessagesRead);
+    };
+  }, [socket, conversationId, user?._id]);
+
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
-    setSending(true);
+
+    if (!inputText.trim() || sending) return;
+
     const content = inputText.trim();
-    setInputText('');
+
+    setSending(true);
+    setInputText("");
 
     try {
-      const res = await messageService.sendMessage(conversationId, { content });
-      const created = res.data?.message;
+      const res = await messageService.sendMessage(conversationId, {
+        content,
+      });
+
+      const created = res.data?.message || res.data;
+
       if (created) {
-        setMessages(prev => [...prev, created]);
-        if (socket) {
-          socket.emit('message:send', { conversationId, message: created });
-        }
+        setMessages((prev) => {
+          // Prevent duplicate messages
+          if (prev.some((msg) => msg._id === created._id)) {
+            return prev;
+          }
+
+          return [...prev, created];
+        });
       }
     } catch (err) {
-      console.log(err)
-      toast.error('Failed to send message');
+      console.error("[Message Error]", err);
+
+      toast.error(err.response?.data?.message || "Failed to send message");
+
       setInputText(content);
     } finally {
       setSending(false);
     }
   };
 
-  const otherParticipant = conversation?.participants?.find(p => p.userId._id !== user?._id).userId || conversation?.participants?.[0].userId;
-  const avatar = otherParticipant?.avatarUrl || `https://ui-avatars.com/api/?name=${otherParticipant?.firstName}+${otherParticipant?.lastName}&background=7D1E3B&color=fff`;
+  const getDateKey = (date) => {
+    const d = new Date(date);
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const getDateLabel = (date) => {
+    const messageDate = new Date(date);
+    const today = new Date();
+    const yesterday = new Date();
+
+    yesterday.setDate(today.getDate() - 1);
+
+    if (getDateKey(messageDate) === getDateKey(today)) {
+      return "Today";
+    }
+
+    if (getDateKey(messageDate) === getDateKey(yesterday)) {
+      return "Yesterday";
+    }
+
+    return messageDate.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const otherParticipant =
+    conversation?.participants?.find((p) => p.userId._id !== user?._id)
+      .userId || conversation?.participants?.[0].userId;
+  const avatar =
+    otherParticipant?.avatarUrl ||
+    `https://ui-avatars.com/api/?name=${otherParticipant?.firstName}+${otherParticipant?.lastName}&background=7D1E3B&color=fff`;
 
   return (
     <div className="max-w-3xl mx-auto h-[calc(100vh-140px)] flex flex-col bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-gray-100 flex items-center gap-3 bg-white">
         <button
-          onClick={() => navigate('/messages')}
+          onClick={() => navigate("/messages")}
           className="p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-charcoal transition-all"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <img src={avatar} alt={otherParticipant?.firstName} className="w-10 h-10 rounded-full object-cover" />
+        <img
+          src={avatar}
+          alt={otherParticipant?.firstName}
+          className="w-10 h-10 rounded-full object-cover"
+        />
         <div>
           <h2 className="font-semibold text-charcoal text-sm">
             {otherParticipant?.firstName} {otherParticipant?.lastName}
           </h2>
-          <p className="text-xs text-gray-400 capitalize">{otherParticipant?.role || 'Member'}</p>
+          <p className="text-xs text-gray-400 capitalize">
+            {otherParticipant?.role || "Member"}
+          </p>
         </div>
       </div>
 
       {/* Message List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-ivory/40">
+      {/* Message List */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-ivory/40">
         {loading ? (
           <div className="space-y-3 animate-pulse">
             <div className="h-10 bg-white rounded-xl w-1/2" />
@@ -125,42 +216,92 @@ export default function ConversationPage() {
             <div className="h-10 bg-white rounded-xl w-1/3" />
           </div>
         ) : messages.length > 0 ? (
-          messages.map((msg) => {
-            const isMe = (msg.senderId?._id || msg.senderId) === user?._id;
-            return (
-              <div
-                key={msg._id || Math.random()}
-                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-              >
-                <div
-                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
-                    isMe
-                      ? 'bg-burgundy text-white rounded-br-xs shadow-soft'
-                      : 'bg-white text-charcoal rounded-bl-xs border border-gray-100 shadow-soft'
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap break-words">{msg.text}</p>
-                </div>
-                {/* <span className="text-[10px] text-gray-400 mt-1 px-1">
-                  {formatRelativeTime(msg.createdAt)}
-                </span> */}
+          Object.entries(
+            messages.reduce((groups, msg) => {
+              const dateKey = getDateKey(msg.createdAt);
+
+              if (!groups[dateKey]) {
+                groups[dateKey] = [];
+              }
+
+              groups[dateKey].push(msg);
+
+              return groups;
+            }, {}),
+          ).map(([dateKey, dateMessages]) => (
+            <div key={dateKey} className="space-y-3">
+              {/* Date separator */}
+              <div className="flex justify-center py-2">
+                <span className="px-3 py-1 bg-white border border-gray-100 rounded-full text-[11px] font-medium text-gray-500 shadow-xs">
+                  {getDateLabel(dateMessages[0].createdAt)}
+                </span>
               </div>
-            );
-          })
+
+              {/* Messages for this date */}
+              {dateMessages.map((msg) => {
+                const senderId = msg.senderId?._id || msg.senderId;
+                const isMe = String(senderId) === String(user?._id);
+
+                return (
+                  <div
+                    key={msg._id}
+                    className={`flex flex-col ${
+                      isMe ? "items-end" : "items-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
+                        isMe
+                          ? "bg-burgundy text-white rounded-br-xs shadow-soft"
+                          : "bg-white text-charcoal rounded-bl-xs border border-gray-100 shadow-soft"
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap break-words">
+                        {msg.text}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1 mt-1 px-1">
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(msg.createdAt).toLocaleTimeString("en-IN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+
+                      {isMe && (
+                        <span
+                          className={`text-[10px] font-medium ${
+                            msg.isRead ? "text-blue-500" : "text-gray-400"
+                          }`}
+                        >
+                          {msg.isRead ? "Seen" : "Sent"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))
         ) : (
           <div className="text-center py-12 text-gray-400 text-xs">
             Start the conversation by sending a message below!
           </div>
         )}
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Field */}
-      <form onSubmit={handleSend} className="p-3 border-t border-gray-100 flex items-center gap-2 bg-white">
+      <form
+        onSubmit={handleSend}
+        className="p-3 border-t border-gray-100 flex items-center gap-2 bg-white"
+      >
         <input
           type="text"
           value={inputText}
-          onChange={e => setInputText(e.target.value)}
+          onChange={(e) => setInputText(e.target.value)}
           placeholder="Type your message..."
           className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-burgundy/30 focus:border-burgundy"
         />

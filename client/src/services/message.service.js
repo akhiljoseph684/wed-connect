@@ -1,7 +1,8 @@
 import api from './api';
 
 export const messageService = {
-  getConversations: () => api.get('/messages/conversations'),
+  getConversations: (params) => api.get('/messages/conversations', { params }),
+  getUnreadCounts: () => api.get('/messages/unread-counts'),
   startConversation: (recipientId) => api.post('/messages/conversations', { recipientId }),
   getConversationById: (id) => api.get(`/messages/conversations/${id}`),
   getMessages: (conversationId, params) => api.get(`/messages/conversations/${conversationId}/messages`, { params }),

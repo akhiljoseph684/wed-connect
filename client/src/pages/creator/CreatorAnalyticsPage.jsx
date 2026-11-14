@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, Eye, Heart, Bookmark, TrendingUp } from 'lucide-react';
+import { BarChart3, Eye, Heart, Bookmark, TrendingUp, Users, MessageCircle, Sparkles } from 'lucide-react';
 import creatorService from '../../services/creator.service.js';
 
 export default function CreatorAnalyticsPage() {
@@ -7,15 +7,19 @@ export default function CreatorAnalyticsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    creatorService.getAnalytics()
-      .then(res => setAnalytics(res.data?.analytics || res.data))
+    creatorService
+      .getAnalytics()
+      .then((res) => setAnalytics(res.data?.analytics || res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const impressions = analytics?.impressions || 1240;
-  const saves = analytics?.saves || 188;
-  const likes = analytics?.likes || 412;
+  const reach = analytics?.monthlyReach || 0;
+  const saves = analytics?.totalSaves || 0;
+  const likes = analytics?.totalLikes || 0;
+  const comments = analytics?.totalComments || 0;
+  const followers = analytics?.followersCount || 0;
+  const postsCount = analytics?.totalPosts || 0;
 
   return (
     <div className="space-y-6">
@@ -23,61 +27,72 @@ export default function CreatorAnalyticsPage() {
         <h1 className="font-playfair text-2xl font-bold text-charcoal flex items-center gap-2">
           <BarChart3 className="w-6 h-6 text-burgundy" /> Creator Growth Analytics
         </h1>
-        <p className="text-sm text-gray-500">Insights into reach, saves, and inspiration saves</p>
+        <p className="text-sm text-gray-500">Real-time performance metrics computed from community engagement</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100">
-          <div className="flex items-center justify-between text-gray-500 text-xs">
-            <span>Inspiration Views</span>
-            <Eye className="w-4 h-4 text-burgundy" />
-          </div>
-          <p className="text-2xl font-bold text-charcoal mt-2">{impressions}</p>
-          <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> +24% past 30 days
-          </p>
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-28 bg-white rounded-2xl animate-pulse shadow-soft" />
+          ))}
         </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bg-white p-6 rounded-2xl shadow-soft border border-sand/60">
+            <div className="flex items-center justify-between text-mutedGray text-xs">
+              <span className="font-semibold uppercase tracking-wider">Estimated Reach</span>
+              <Eye className="w-4 h-4 text-burgundy" />
+            </div>
+            <p className="text-3xl font-bold text-charcoal mt-2 font-serif">{reach.toLocaleString()}</p>
+            <p className="text-[11px] text-mutedGray mt-1">Impressions across wedding feeds</p>
+          </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100">
-          <div className="flex items-center justify-between text-gray-500 text-xs">
-            <span>Moodboard Saves</span>
-            <Bookmark className="w-4 h-4 text-rose" />
+          <div className="bg-white p-6 rounded-2xl shadow-soft border border-sand/60">
+            <div className="flex items-center justify-between text-mutedGray text-xs">
+              <span className="font-semibold uppercase tracking-wider">Board Saves</span>
+              <Bookmark className="w-4 h-4 text-rose" />
+            </div>
+            <p className="text-3xl font-bold text-charcoal mt-2 font-serif">{saves.toLocaleString()}</p>
+            <p className="text-[11px] text-mutedGray mt-1">Times saved to couples' mood boards</p>
           </div>
-          <p className="text-2xl font-bold text-charcoal mt-2">{saves}</p>
-          <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> +32 saves this week
-          </p>
-        </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100">
-          <div className="flex items-center justify-between text-gray-500 text-xs">
-            <span>Community Likes</span>
-            <Heart className="w-4 h-4 text-rose fill-rose" />
+          <div className="bg-white p-6 rounded-2xl shadow-soft border border-sand/60">
+            <div className="flex items-center justify-between text-mutedGray text-xs">
+              <span className="font-semibold uppercase tracking-wider">Community Likes</span>
+              <Heart className="w-4 h-4 text-burgundy fill-burgundy" />
+            </div>
+            <p className="text-3xl font-bold text-charcoal mt-2 font-serif">{likes.toLocaleString()}</p>
+            <p className="text-[11px] text-mutedGray mt-1">Total hearts on your inspirations</p>
           </div>
-          <p className="text-2xl font-bold text-charcoal mt-2">{likes}</p>
-          <p className="text-[11px] text-gray-400 mt-1">Total reactions on content</p>
-        </div>
-      </div>
 
-      <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-soft border border-gray-100">
-        <h2 className="font-playfair font-bold text-lg text-charcoal mb-4">Audience Demographics</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="p-4 bg-gray-50 rounded-xl space-y-2 text-xs">
-            <span className="font-bold text-charcoal block text-sm">Top Wedding Locations Planning In:</span>
-            <div className="flex justify-between text-gray-600"><span>New York, NY</span><span>28%</span></div>
-            <div className="flex justify-between text-gray-600"><span>Los Angeles, CA</span><span>22%</span></div>
-            <div className="flex justify-between text-gray-600"><span>Austin, TX</span><span>16%</span></div>
-            <div className="flex justify-between text-gray-600"><span>International Destination</span><span>14%</span></div>
+          <div className="bg-white p-6 rounded-2xl shadow-soft border border-sand/60">
+            <div className="flex items-center justify-between text-mutedGray text-xs">
+              <span className="font-semibold uppercase tracking-wider">Followers</span>
+              <Users className="w-4 h-4 text-gold" />
+            </div>
+            <p className="text-3xl font-bold text-charcoal mt-2 font-serif">{followers.toLocaleString()}</p>
+            <p className="text-[11px] text-mutedGray mt-1">Active couples & creators following</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-xl space-y-2 text-xs">
-            <span className="font-bold text-charcoal block text-sm">Popular Styles Saved:</span>
-            <div className="flex justify-between text-gray-600"><span>Bohemian & Earthy</span><span>34%</span></div>
-            <div className="flex justify-between text-gray-600"><span>Classic Black Tie</span><span>29%</span></div>
-            <div className="flex justify-between text-gray-600"><span>Modern Minimalist</span><span>21%</span></div>
-            <div className="flex justify-between text-gray-600"><span>Rustic Barn</span><span>16%</span></div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-soft border border-sand/60">
+            <div className="flex items-center justify-between text-mutedGray text-xs">
+              <span className="font-semibold uppercase tracking-wider">Comments</span>
+              <MessageCircle className="w-4 h-4 text-charcoal/60" />
+            </div>
+            <p className="text-3xl font-bold text-charcoal mt-2 font-serif">{comments.toLocaleString()}</p>
+            <p className="text-[11px] text-mutedGray mt-1">Inquiries and remarks on styling</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-soft border border-sand/60">
+            <div className="flex items-center justify-between text-mutedGray text-xs">
+              <span className="font-semibold uppercase tracking-wider">Published Inspirations</span>
+              <Sparkles className="w-4 h-4 text-burgundy" />
+            </div>
+            <p className="text-3xl font-bold text-charcoal mt-2 font-serif">{postsCount.toLocaleString()}</p>
+            <p className="text-[11px] text-mutedGray mt-1">Active editorial posts in public feed</p>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

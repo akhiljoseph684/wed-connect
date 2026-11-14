@@ -15,7 +15,7 @@ export const getCreators = asyncHandler(async (req, res) => {
 });
 
 export const getCreatorByUserId = asyncHandler(async (req, res) => {
-  const result = await creatorService.getCreatorByUserId(req.params.username);
+  const result = await creatorService.getCreatorByUserId(req.params.username, req.user?._id);
   return res
     .status(200)
     .json(new ApiResponse(200, result, "Creator profile retrieved"));
@@ -78,4 +78,21 @@ export const createCollaboration = asyncHandler(async (req, res) => {
   return res
     .status(201)
     .json(new ApiResponse(201, request, "Collaboration request sent"));
+});
+
+export const updateCollaborationStatus = asyncHandler(async (req, res) => {
+  const updated = await creatorService.updateCollaborationStatus(
+    req.params.id,
+    req.user._id,
+    req.body.status,
+  );
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updated,
+        `Collaboration request updated to ${req.body.status}`,
+      ),
+    );
 });

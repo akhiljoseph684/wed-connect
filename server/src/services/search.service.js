@@ -1,6 +1,8 @@
-import { Post, Business, CreatorProfile, Category, User } from '../models/index.js';
+import mongoose from 'mongoose';
+import { Post, Business, CreatorProfile, Category, User, Review } from '../models/index.js';
+import { buildPostAggregationPipeline } from './post.service.js';
 
-export const globalSearch = async (query, type = 'all', page = 1, limit = 12) => {
+export const globalSearch = async (query, type = 'all', page = 1, limit = 12, currentUserId = null) => {
   const skip = (page - 1) * limit;
   const regex = new RegExp(query, 'i');
 
@@ -12,34 +14,104 @@ export const globalSearch = async (query, type = 'all', page = 1, limit = 12) =>
   };
 
   if (type === 'all' || type === 'posts') {
-    results.posts = await Post.find({
+    const postMatch = {
       isPublished: true,
-      $or: [{ title: regex }, { content: regex }, { tags: regex }],
-    })
-      .populate('authorId', 'firstName lastName avatarUrl')
-      .populate('categoryId', 'name slug')
-      .sort({ likesCount: -1 })
-      .skip(skip)
-      .limit(limit);
+      ...(query
+        ? {
+            $or: [{ title: regex }, { content: regex }, { tags: regex }],
+          }
+        : {}),
+    };
+
+    results.posts = await Post.aggregate(
+      buildPostAggregationPipeline({
+        matchCriteria: postMatch,
+        currentUserId,
+        sort: { likesCount: -1, createdAt: -1 },
+        skip,
+        limit,
+      })
+    );
   }
 
   if (type === 'all' || type === 'vendors') {
-    results.vendors = await Business.find({
+    const vendorMatch = {
       isActive: true,
-      $or: [{ name: regex }, { tagline: regex }, { description: regex }, { 'location.city': regex }, { subcategories: regex }],
-    })
-      .populate('categoryId', 'name slug')
-      .sort({ 'rating.average': -1 })
-      .skip(skip)
-      .limit(limit);
+      ...(query
+        ? {
+            $or: [
+              { name: regex },
+              { tagline: regex },
+              { description: regex },
+              { 'location.city': regex },
+              { subcategories: regex },
+            ],
+          }
+        : {}),
+    };
+
+    // Aggregate vendors with review calculations
+    results.vendors = await Business.aggregate([
+      { $match: vendorMatch },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'categoryId',
+          foreignField: '_id',
+          as: 'categoryData',
+        },
+      },
+      { $unwind: { path: '$categoryData', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'reviews',
+          localField: '_id',
+          foreignField: 'businessId',
+          as: 'reviewsData',
+        },
+      },
+      {
+        $addFields: {
+          totalReviews: { $size: '$reviewsData' },
+          averageRating: {
+            $cond: [
+              { $gt: [{ $size: '$reviewsData' }, 0] },
+              { $round: [{ $avg: '$reviewsData.rating' }, 1] },
+              0,
+            ],
+          },
+          categoryId: {
+            _id: '$categoryData._id',
+            name: '$categoryData.name',
+            slug: '$categoryData.slug',
+          },
+        },
+      },
+      {
+        $addFields: {
+          rating: {
+            average: '$averageRating',
+            count: '$totalReviews',
+          },
+        },
+      },
+      { $project: { reviewsData: 0, categoryData: 0 } },
+      { $sort: { averageRating: -1, createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ]);
   }
 
   if (type === 'all' || type === 'creators') {
     results.creators = await CreatorProfile.find({
-      $or: [{ displayName: regex }, { username: regex }, { bio: regex }, { specialties: regex }],
+      ...(query
+        ? {
+            $or: [{ displayName: regex }, { username: regex }, { bio: regex }, { specialties: regex }],
+          }
+        : {}),
     })
       .populate('userId', 'firstName lastName avatarUrl')
-      .sort({ 'stats.followersCount': -1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
   }
@@ -47,7 +119,7 @@ export const globalSearch = async (query, type = 'all', page = 1, limit = 12) =>
   if (type === 'all' || type === 'categories') {
     results.categories = await Category.find({
       isActive: true,
-      $or: [{ name: regex }, { description: regex }],
+      ...(query ? { $or: [{ name: regex }, { description: regex }] } : {}),
     }).limit(6);
   }
 

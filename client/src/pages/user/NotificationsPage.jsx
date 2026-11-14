@@ -11,10 +11,12 @@ import {
 import toast from "react-hot-toast";
 import notificationService from "../../services/notification.service.js";
 import { formatRelativeTime } from "../../utils/formatters.js";
+import { useNavigate } from "react-router-dom";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -42,12 +44,15 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleMarkRead = async (id) => {
+  const handleMarkRead = async (id, item) => {
     try {
-      await notificationService.markAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, read: true } : n)),
-      );
+      if (!item.isRead) {
+        await notificationService.markAsRead(id);
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)),
+        );
+      }
+      navigate(item.link);
     } catch (err) {
       console.error(err);
     }
@@ -103,9 +108,11 @@ export default function NotificationsPage() {
           {notifications.map((item) => (
             <div
               key={item._id}
-              onClick={() => !item.isRead && handleMarkRead(item._id)}
+              onClick={() => handleMarkRead(item._id, item)}
               className={`p-4 flex items-center gap-4 transition-colors cursor-pointer ${
-                item.isRead ? "hover:bg-gray-50/50" : "bg-rose/5 hover:bg-rose/10"
+                item.isRead
+                  ? "hover:bg-gray-50/50"
+                  : "bg-rose/5 hover:bg-rose/10"
               }`}
             >
               <div className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center shrink-0 shadow-soft">

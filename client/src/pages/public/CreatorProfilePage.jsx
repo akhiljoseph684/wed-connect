@@ -33,7 +33,9 @@ export const CreatorProfilePage = () => {
       setIsLoading(true);
       try {
         const res = await creatorService.getCreatorByUserId(username);
-        setProfile(res.data?.profile);
+        const p = res.data?.profile;
+        setProfile(p);
+        setIsFollowing(Boolean(p?.isFollowing));
         setPosts(res.data?.posts || []);
       } catch (err) {
         console.error(err);
@@ -50,18 +52,33 @@ export const CreatorProfilePage = () => {
       toast.error("Please sign in to follow creators");
       return;
     }
+    const targetUserId = profile.userId?._id || profile.userId;
     try {
       if (isFollowing) {
-        await userService.unfollowUser(profile.userId._id);
+        await userService.unfollowUser(targetUserId);
         setIsFollowing(false);
+        setProfile((prev) => ({
+          ...prev,
+          stats: {
+            ...prev?.stats,
+            followersCount: Math.max(0, (prev?.stats?.followersCount || 1) - 1),
+          },
+        }));
         toast.success(`Unfollowed @${profile.username}`);
       } else {
-        await userService.followUser(profile.userId._id);
+        await userService.followUser(targetUserId);
         setIsFollowing(true);
+        setProfile((prev) => ({
+          ...prev,
+          stats: {
+            ...prev?.stats,
+            followersCount: (prev?.stats?.followersCount || 0) + 1,
+          },
+        }));
         toast.success(`Following @${profile.username}!`);
       }
     } catch (err) {
-      toast.error("Failed to update follow");
+      toast.error(err.response?.data?.message || "Failed to update follow");
     }
   };
 
@@ -74,7 +91,7 @@ export const CreatorProfilePage = () => {
 
     try {
       await creatorService.createCollaboration({
-        receiverId: profile.userId._id,
+        receiverId: profile.userId?._id || profile.userId,
         projectTitle: collabTitle,
         details: collabDetails,
       });
@@ -84,7 +101,7 @@ export const CreatorProfilePage = () => {
       setCollabTitle("");
       setCollabDetails("");
     } catch (err) {
-      toast.error("Failed to send collaboration request");
+      toast.error(err.response?.data?.message || "Failed to send collaboration request");
     }
   };
 
@@ -148,6 +165,15 @@ export const CreatorProfilePage = () => {
                 {profile?.tagline || profile?.bio}
               </p>
 
+              <div className="flex items-center gap-4 text-xs text-mutedGray pt-1">
+                <span className="flex items-center gap-1 font-semibold text-charcoal">
+                  <Users className="w-3.5 h-3.5 text-gold-600" />
+                  {profile?.stats?.followersCount || 0} Followers
+                </span>
+                <span>•</span>
+                <span>{posts.length} Inspirations</span>
+              </div>
+
               {/* Specialties */}
               {profile?.specialties && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
@@ -173,15 +199,21 @@ export const CreatorProfilePage = () => {
             >
               {isFollowing ? "Following" : "Follow Creator"}
             </Button>
-            <Button
-              variant="secondary"
-              size="md"
-              className="rounded-full"
-              onClick={() => setIsCollabModalOpen(true)}
-            >
-              <HeartHandshake className="w-4 h-4" />
-              Collaborate
-            </Button>
+            {profile?.acceptingBrandCollaborations !== false ? (
+              <Button
+                variant="secondary"
+                size="md"
+                className="rounded-full"
+                onClick={() => setIsCollabModalOpen(true)}
+              >
+                <HeartHandshake className="w-4 h-4" />
+                Collaborate
+              </Button>
+            ) : (
+              <span className="text-xs text-mutedGray bg-sand/30 px-3 py-2 rounded-full italic">
+                Collaborations closed
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -38,15 +38,6 @@ export const createReview = async (businessId, authorId, reviewData) => {
     weddingDate: reviewData.weddingDate,
   });
 
-  // Recalculate average rating
-  const allReviews = await Review.find({ businessId });
-  const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
-  const average = Number((totalRating / allReviews.length).toFixed(1));
-
-  await Business.findByIdAndUpdate(businessId, {
-    rating: { average, count: allReviews.length },
-  });
-
   // Notify vendor owner
   const notification = await Notification.create({
     recipientId: business.ownerId,
@@ -58,6 +49,23 @@ export const createReview = async (businessId, authorId, reviewData) => {
   });
   sendNotificationToUser(business.ownerId, notification);
 
+  return await Review.findById(review._id).populate('authorId', 'firstName lastName avatarUrl');
+};
+
+export const updateReview = async (reviewId, userId, updateData) => {
+  const review = await Review.findById(reviewId);
+  if (!review) throw new ApiError(404, 'Review not found');
+
+  if (review.authorId.toString() !== userId.toString()) {
+    throw new ApiError(403, 'You are not authorized to edit this review');
+  }
+
+  if (updateData.rating !== undefined) review.rating = updateData.rating;
+  if (updateData.title !== undefined) review.title = updateData.title;
+  if (updateData.comment !== undefined) review.comment = updateData.comment;
+  if (updateData.weddingDate !== undefined) review.weddingDate = updateData.weddingDate;
+
+  await review.save();
   return await Review.findById(review._id).populate('authorId', 'firstName lastName avatarUrl');
 };
 
@@ -83,21 +91,9 @@ export const deleteReview = async (reviewId, userId, isAdmin = false) => {
   if (!review) throw new ApiError(404, 'Review not found');
 
   if (!isAdmin && review.authorId.toString() !== userId.toString()) {
-    throw new ApiError(403, 'Unauthorized');
+    throw new ApiError(403, 'Unauthorized to delete this review');
   }
 
-  const businessId = review.businessId;
   await Review.findByIdAndDelete(reviewId);
-
-  // Recalculate rating
-  const remainingReviews = await Review.find({ businessId });
-  const average = remainingReviews.length
-    ? Number((remainingReviews.reduce((sum, r) => sum + r.rating, 0) / remainingReviews.length).toFixed(1))
-    : 0;
-
-  await Business.findByIdAndUpdate(businessId, {
-    rating: { average, count: remainingReviews.length },
-  });
-
   return true;
 };

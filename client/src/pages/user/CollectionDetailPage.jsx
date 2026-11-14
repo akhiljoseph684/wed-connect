@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2, Lock, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import collectionService from '../../services/collection.service.js';
 import PostCard from '../../components/cards/PostCard.jsx';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog.jsx';
 
 export default function CollectionDetailPage() {
   const { id } = useParams();
@@ -11,6 +12,7 @@ export default function CollectionDetailPage() {
   const [collection, setCollection] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDeletingCollection, setIsDeletingCollection] = useState(false);
 
   useEffect(() => {
     const fetchCollection = async () => {
@@ -21,7 +23,7 @@ export default function CollectionDetailPage() {
         setCollection(data);
         setItems(data?.items || res.data?.items || []);
       } catch (err) {
-        toast.error('Failed to load collection');
+        toast.error(err.message || 'Failed to load collection');
         navigate('/saved');
       } finally {
         setLoading(false);
@@ -30,14 +32,15 @@ export default function CollectionDetailPage() {
     fetchCollection();
   }, [id, navigate]);
 
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this collection?')) return;
+  const confirmDelete = async () => {
     try {
       await collectionService.deleteCollection(id);
       toast.success('Collection deleted');
       navigate('/saved');
     } catch (err) {
       toast.error('Failed to delete collection');
+    } finally {
+      setIsDeletingCollection(false);
     }
   };
 
@@ -91,7 +94,7 @@ export default function CollectionDetailPage() {
         </div>
 
         <button
-          onClick={handleDelete}
+          onClick={() => setIsDeletingCollection(true)}
           className="flex items-center gap-1.5 px-4 py-2 text-red-600 border border-red-200 rounded-xl text-sm font-medium hover:bg-red-50 transition-all self-start sm:self-center"
         >
           <Trash2 className="w-4 h-4" /> Delete Collection
@@ -123,6 +126,16 @@ export default function CollectionDetailPage() {
           <p className="text-xs text-gray-500 mt-1">Explore inspirations and save them here!</p>
         </div>
       )}
+
+      <ConfirmationDialog
+        isOpen={isDeletingCollection}
+        onClose={() => setIsDeletingCollection(false)}
+        onConfirm={confirmDelete}
+        title="Delete Collection"
+        message="Are you sure you want to permanently delete this mood board collection? The saved items will remain on the platform."
+        confirmText="Delete Collection"
+        isDestructive={true}
+      />
     </div>
   );
 }

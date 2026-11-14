@@ -10,6 +10,8 @@ export const weddingPlanService = {
   addTimelineEvent: (planId, data) => api.post(`/wedding-plans/${planId}/timeline`, data),
   deleteTimelineEvent: (planId, index) => api.delete(`/wedding-plans/${planId}/timeline/${index}`),
   addMember: (planId, data) => api.post(`/wedding-plans/${planId}/members`, data),
+  updateMemberRole: (planId, memberId, role) => api.patch(`/wedding-plans/${planId}/members/${memberId}`, { role }),
+  removeMember: (planId, memberId) => api.delete(`/wedding-plans/${planId}/members/${memberId}`),
 };
 
 export default weddingPlanService;

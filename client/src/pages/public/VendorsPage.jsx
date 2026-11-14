@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { businessService } from '../../services/business.service.js';
-import { categoryService } from '../../services/category.service.js';
-import VendorCard from '../../components/cards/VendorCard.jsx';
-import { VendorCardSkeleton } from '../../components/common/Skeleton.jsx';
-import EmptyState from '../../components/common/EmptyState.jsx';
-import { Store, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { businessService } from "../../services/business.service.js";
+import { categoryService } from "../../services/category.service.js";
+import VendorCard from "../../components/cards/VendorCard.jsx";
+import { VendorCardSkeleton } from "../../components/common/Skeleton.jsx";
+import EmptyState from "../../components/common/EmptyState.jsx";
+import { Store, Search, Filter } from "lucide-react";
 
 export const VendorsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -13,13 +13,20 @@ export const VendorsPage = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
-  const [searchCity, setSearchCity] = useState(searchParams.get('city') || '');
-  const [priceRange, setPriceRange] = useState(searchParams.get('priceRange') || '');
-  const [sortBy, setSortBy] = useState('rating');
+  const [selectedCategory, setSelectedCategory] = useState(
+    searchParams.get("category") || "",
+  );
+  const [searchCity, setSearchCity] = useState(searchParams.get("city") || "");
+  const [priceRange, setPriceRange] = useState(
+    searchParams.get("priceRange") || "",
+  );
+  const [sortBy, setSortBy] = useState("rating");
 
   useEffect(() => {
-    categoryService.getCategories({type: 'vendor'}).then((res) => setCategories(res.data || [])).catch(() => {});
+    categoryService
+      .getCategories({ type: "vendor" })
+      .then((res) => setCategories(res.data || []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -47,10 +54,15 @@ export const VendorsPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Header */}
       <div className="text-center max-w-2xl mx-auto space-y-3">
-        <span className="text-xs font-bold uppercase tracking-widest text-gold-700">Marketplace Directory</span>
-        <h1 className="font-serif text-4xl font-medium text-charcoal">Find Your Dream Wedding Vendors</h1>
+        <span className="text-xs font-bold uppercase tracking-widest text-gold-700">
+          Marketplace Directory
+        </span>
+        <h1 className="font-serif text-4xl font-medium text-charcoal">
+          Find Your Dream Wedding Vendors
+        </h1>
         <p className="text-sm text-mutedGray">
-          Verified photographers, venues, florists, and wedding planners dedicated to crafting unforgettable celebrations.
+          Verified photographers, venues, florists, and wedding planners
+          dedicated to crafting unforgettable celebrations.
         </p>
       </div>
 
@@ -65,7 +77,9 @@ export const VendorsPage = () => {
           >
             <option value="">All Categories</option>
             {categories.map((c) => (
-              <option key={c._id} value={c._id}>{c.name}</option>
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
@@ -125,9 +139,9 @@ export const VendorsPage = () => {
           description="Try broadening your city or category filter criteria."
           actionLabel="Clear Filters"
           onAction={() => {
-            setSelectedCategory('');
-            setSearchCity('');
-            setPriceRange('');
+            setSelectedCategory("");
+            setSearchCity("");
+            setPriceRange("");
           }}
         />
       ) : (

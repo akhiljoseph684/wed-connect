@@ -53,7 +53,7 @@ export default function TimelinePage() {
       setDescription('');
       fetchTimeline();
     } catch (err) {
-      toast.error('Failed to add event');
+      toast.error(err.message || 'Failed to add event');
     } finally {
       setSubmitting(false);
     }

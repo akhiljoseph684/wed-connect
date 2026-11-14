@@ -1,15 +1,19 @@
-import { Enquiry, Business, Conversation, Message, Notification } from '../models/index.js';
+import { Enquiry, Business, Conversation, Message, Notification, User } from '../models/index.js';
 import { ApiError } from '../utils/apiResponse.js';
 import { sendNotificationToUser } from '../config/socket.js';
+import { sendVendorInquiryAlertEmail, sendAutoInquiryResponseEmail } from '../utils/email.js';
 
 export const createEnquiry = async (userId, businessId, data) => {
-  const business = await Business.findById(businessId);
+  const business = await Business.findById(businessId).populate('ownerId', 'email firstName lastName');
   if (!business) throw new ApiError(404, 'Business not found');
+
+  const vendorOwnerId = business.ownerId?._id || business.ownerId;
+  const vendorEmail = business.contactEmail || business.ownerId?.email;
 
   // Check if existing conversation exists or create one
   let conversation = await Conversation.findOne({
     businessId,
-    'participants.userId': { $all: [userId, business.ownerId] },
+    'participants.userId': { $all: [userId, vendorOwnerId] },
   });
 
   if (!conversation) {
@@ -18,7 +22,7 @@ export const createEnquiry = async (userId, businessId, data) => {
       businessId,
       participants: [
         { userId, role: 'client' },
-        { userId: business.ownerId, role: 'vendor' },
+        { userId: vendorOwnerId, role: 'vendor' },
       ],
       lastMessage: {
         text: `New Enquiry from ${data.coupleNames}: "${data.message.substring(0, 60)}..."`,
@@ -54,14 +58,37 @@ export const createEnquiry = async (userId, businessId, data) => {
 
   // Send notification to vendor owner
   const notification = await Notification.create({
-    recipientId: business.ownerId,
+    recipientId: vendorOwnerId,
     senderId: userId,
     type: 'enquiry',
     title: 'New Booking Enquiry',
     message: `${data.coupleNames} requested a quote for their wedding.`,
     link: `/vendor/enquiries/${enquiry._id}`,
   });
-  sendNotificationToUser(business.ownerId, notification);
+  sendNotificationToUser(vendorOwnerId, notification);
+
+  // Issue 28: Send emails if vendor enabled alerts
+  if (business.settings?.instantEmailAlerts !== false && vendorEmail) {
+    sendVendorInquiryAlertEmail({
+      vendorEmail,
+      vendorName: business.name,
+      clientName: data.coupleNames,
+      clientEmail: data.contactEmail,
+      message: data.message,
+      weddingDate: data.weddingDate,
+    }).catch((err) => console.error('[Enquiry Email Alert Warning]:', err.message));
+  }
+
+  if (business.settings?.autoInquiryResponse && data.contactEmail) {
+    sendAutoInquiryResponseEmail({
+      clientEmail: data.contactEmail,
+      clientName: data.coupleNames,
+      vendorName: business.name,
+      customMessage:
+        business.settings?.autoInquiryMessage ||
+        'Thank you for reaching out! We have received your inquiry and will respond shortly.',
+    }).catch((err) => console.error('[Auto Inquiry Email Warning]:', err.message));
+  }
 
   return enquiry;
 };

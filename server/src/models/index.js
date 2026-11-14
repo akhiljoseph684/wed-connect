@@ -25,3 +25,6 @@ export { Guest } from './Guest.js';
 export { Report } from './Report.js';
 export { AuditLog } from './AuditLog.js';
 export { CollaborationRequest } from './CollaborationRequest.js';
+export { AnalyticsEvent } from './AnalyticsEvent.js';
+export { PlatformSettings } from './PlatformSettings.js';
+

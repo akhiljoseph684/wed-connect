@@ -29,6 +29,8 @@ export const CategoryDetailsPage = () => {
           businessService.getBusinesses({ categorySlug: slug, limit: 12 }),
           postService.getForYouFeed({ categoryId: cat._id, limit: 12 }),
         ]);
+        console.log(vendorRes)
+        console.log(postRes)
 
         setVendors(vendorRes.data?.businesses || []);
         setPosts(postRes.data?.posts || []);

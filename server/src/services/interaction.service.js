@@ -10,11 +10,11 @@ export const toggleLikePost = async (userId, postId) => {
 
   if (existingLike) {
     await Like.findByIdAndDelete(existingLike._id);
-    const updatedPost = await Post.findByIdAndUpdate(postId, { $inc: { likesCount: -1 } }, { new: true });
-    return { isLiked: false, likesCount: Math.max(0, updatedPost.likesCount) };
+    const likesCount = await Like.countDocuments({ targetId: postId, targetType: 'post' });
+    return { isLiked: false, likesCount };
   } else {
     await Like.create({ userId, targetId: postId, targetType: 'post' });
-    const updatedPost = await Post.findByIdAndUpdate(postId, { $inc: { likesCount: 1 } }, { new: true });
+    const likesCount = await Like.countDocuments({ targetId: postId, targetType: 'post' });
 
     // Send notification to author if not liking own post
     if (post.authorId.toString() !== userId.toString()) {
@@ -24,13 +24,13 @@ export const toggleLikePost = async (userId, postId) => {
         senderId: userId,
         type: 'like',
         title: 'New Like',
-        message: `${user?.firstName || 'Someone'} loved your post.`,
+        message: `${user?.firstName || 'Someone'} liked your post.`,
         link: `/posts/${postId}`,
       });
       sendNotificationToUser(post.authorId, notification);
     }
 
-    return { isLiked: true, likesCount: updatedPost.likesCount };
+    return { isLiked: true, likesCount };
   }
 };
 
@@ -67,8 +67,6 @@ export const addComment = async (postId, authorId, { text, parentCommentId = nul
     text,
   });
 
-  await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: 1 } });
-
   const populatedComment = await Comment.findById(comment._id).populate('authorId', 'firstName lastName displayName avatarUrl');
 
   // Notify post author
@@ -97,6 +95,5 @@ export const deleteComment = async (commentId, userId, isAdmin = false) => {
   }
 
   await Comment.findByIdAndDelete(commentId);
-  await Post.findByIdAndUpdate(comment.postId, { $inc: { commentsCount: -1 } });
   return true;
 };

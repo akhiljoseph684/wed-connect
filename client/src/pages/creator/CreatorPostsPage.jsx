@@ -6,11 +6,13 @@ import toast from 'react-hot-toast';
 import userService from '../../services/user.service.js';
 import postService from '../../services/post.service.js';
 import PostCard from '../../components/cards/PostCard.jsx';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog.jsx';
 
 export default function CreatorPostsPage() {
   const { user } = useSelector(state => state.auth);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletePostId, setDeletePostId] = useState(null);
 
   const fetchPosts = async () => {
     if (!user?._id) return;
@@ -29,14 +31,16 @@ export default function CreatorPostsPage() {
     fetchPosts();
   }, [user?._id]);
 
-  const handleDelete = async (postId) => {
-    if (!window.confirm('Delete this post?')) return;
+  const confirmDeletePost = async () => {
+    if (!deletePostId) return;
     try {
-      await postService.deletePost(postId);
-      setPosts(prev => prev.filter(p => p._id !== postId));
+      await postService.deletePost(deletePostId);
+      setPosts((prev) => prev.filter((p) => p._id !== deletePostId));
       toast.success('Post deleted');
     } catch (err) {
       toast.error('Failed to delete post');
+    } finally {
+      setDeletePostId(null);
     }
   };
 
@@ -67,7 +71,7 @@ export default function CreatorPostsPage() {
             <div key={p._id} className="relative group">
               <PostCard post={p} />
               <button
-                onClick={() => handleDelete(p._id)}
+                onClick={() => setDeletePostId(p._id)}
                 className="absolute top-3 right-3 p-1.5 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all z-10"
                 title="Delete post"
               >
@@ -85,6 +89,16 @@ export default function CreatorPostsPage() {
           </p>
         </div>
       )}
+
+      <ConfirmationDialog
+        isOpen={Boolean(deletePostId)}
+        onClose={() => setDeletePostId(null)}
+        onConfirm={confirmDeletePost}
+        title="Delete Post"
+        message="Are you sure you want to permanently delete this inspiration post? This action cannot be undone."
+        confirmText="Delete Post"
+        isDestructive={true}
+      />
     </div>
   );
 }

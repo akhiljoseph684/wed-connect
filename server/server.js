@@ -18,7 +18,7 @@ const startServer = async () => {
     initSocket(httpServer);
 
     // 3. Start listening
-    httpServer.listen(PORT, () => {
+    httpServer.listen(PORT, "0.0.0.0", () => {
       console.log(`===============================================`);
       console.log(`  ✨ WedConnect Server Running on Port ${PORT} ✨`);
       console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);

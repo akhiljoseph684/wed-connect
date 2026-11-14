@@ -43,22 +43,22 @@ export default function TasksPage() {
   const toggleTaskStatus = async (task) => {
     const newStatus = task.status === "completed" ? "pending" : "completed";
     try {
-      await taskService.updateTask(task._id, { status: newStatus });
+      await taskService.updateTask(task._id, { status: newStatus }, planId);
       setTasks((prev) =>
         prev.map((t) => (t._id === task._id ? { ...t, status: newStatus } : t)),
       );
     } catch (err) {
-      toast.error("Failed to update task status");
+      toast.error(err.message || "Failed to update task status");
     }
   };
 
   const handleDelete = async (taskId) => {
     try {
-      await taskService.deleteTask(taskId);
+      await taskService.deleteTask(taskId, planId);
       setTasks((prev) => prev.filter((t) => t._id !== taskId));
       toast.success("Task removed");
     } catch (err) {
-      toast.error("Failed to delete task");
+      toast.error(err.message || "Failed to delete task");
     }
   };
 

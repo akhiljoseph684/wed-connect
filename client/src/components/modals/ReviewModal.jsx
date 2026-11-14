@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal.jsx';
 import Button from '../common/Button.jsx';
 import Input from '../common/Input.jsx';
@@ -6,13 +6,31 @@ import { reviewService } from '../../services/review.service.js';
 import { Star } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export const ReviewModal = ({ isOpen, onClose, business, onSubmitted }) => {
-  const [rating, setRating] = useState(5);
+export const ReviewModal = ({ isOpen, onClose, business, initialReview = null, onSubmitted }) => {
+  const [rating, setRating] = useState(initialReview?.rating || 5);
   const [hoverRating, setHoverRating] = useState(0);
-  const [title, setTitle] = useState('');
-  const [comment, setComment] = useState('');
-  const [weddingDate, setWeddingDate] = useState('');
+  const [title, setTitle] = useState(initialReview?.title || '');
+  const [comment, setComment] = useState(initialReview?.comment || initialReview?.content || '');
+  const [weddingDate, setWeddingDate] = useState(
+    initialReview?.weddingDate ? new Date(initialReview.weddingDate).toISOString().split('T')[0] : ''
+  );
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialReview) {
+      setRating(initialReview.rating || 5);
+      setTitle(initialReview.title || '');
+      setComment(initialReview.comment || initialReview.content || '');
+      setWeddingDate(
+        initialReview.weddingDate ? new Date(initialReview.weddingDate).toISOString().split('T')[0] : ''
+      );
+    } else {
+      setRating(5);
+      setTitle('');
+      setComment('');
+      setWeddingDate('');
+    }
+  }, [initialReview]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,18 +41,29 @@ export const ReviewModal = ({ isOpen, onClose, business, onSubmitted }) => {
 
     try {
       setIsLoading(true);
-      const res = await reviewService.createReview(business._id, {
-        rating,
-        title,
-        comment,
-        weddingDate: weddingDate || undefined,
-      });
+      let res;
+      if (initialReview?._id) {
+        res = await reviewService.updateReview(initialReview._id, {
+          rating,
+          title: title.trim(),
+          comment: comment.trim(),
+          weddingDate: weddingDate || undefined,
+        });
+        toast.success('Your wedding vendor review has been updated!');
+      } else {
+        res = await reviewService.createReview(business._id, {
+          rating,
+          title: title.trim(),
+          comment: comment.trim(),
+          weddingDate: weddingDate || undefined,
+        });
+        toast.success('Thank you! Your wedding vendor review has been submitted.');
+      }
 
-      toast.success('Thank you! Your wedding vendor review has been submitted.');
       if (onSubmitted) onSubmitted(res.data);
       onClose();
     } catch (err) {
-      toast.error(err.message || 'Failed to submit review');
+      toast.error(err.response?.data?.message || err.message || 'Failed to submit review');
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +73,7 @@ export const ReviewModal = ({ isOpen, onClose, business, onSubmitted }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Review ${business?.name}`}
+      title={initialReview ? `Edit Review for ${business?.name}` : `Review ${business?.name}`}
       description="Share your genuine wedding experience to help other couples plan their special day."
       maxWidth="max-w-lg"
     >
@@ -99,18 +128,18 @@ export const ReviewModal = ({ isOpen, onClose, business, onSubmitted }) => {
         </div>
 
         <Input
-          label="Your Wedding Date (Optional)"
+          label="Wedding / Event Date (Optional)"
           type="date"
           value={weddingDate}
           onChange={(e) => setWeddingDate(e.target.value)}
         />
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-charcoal/5">
-          <Button variant="ghost" onClick={onClose} type="button">
+        <div className="flex justify-end gap-3 pt-3">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" isLoading={isLoading}>
-            Submit Review
+          <Button type="submit" variant="primary" disabled={isLoading}>
+            {isLoading ? 'Submitting...' : initialReview ? 'Update Review' : 'Post Review'}
           </Button>
         </div>
       </form>

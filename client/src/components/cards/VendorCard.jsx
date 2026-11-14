@@ -90,7 +90,7 @@ export const VendorCard = ({ business, onEnquiryClick }) => {
             </span>
           </div>
 
-          <div className="flex items-center gap-1">
+          {business.rating?.average && (<div className="flex items-center gap-1">
             <Star className="w-3.5 h-3.5 fill-gold-500 text-gold-500" />
             <span className="font-semibold text-charcoal">
               {business.rating?.average || 5.0}
@@ -98,7 +98,7 @@ export const VendorCard = ({ business, onEnquiryClick }) => {
             <span className="text-mutedGray text-[11px]">
               ({business.rating?.count || 0})
             </span>
-          </div>
+          </div>)}
         </div>
       </div>
     </div>

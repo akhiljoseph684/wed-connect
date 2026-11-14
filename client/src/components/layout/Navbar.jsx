@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../../store/slices/authSlice.js';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../../store/slices/authSlice.js";
+import authService from "../../services/auth.service.js";
+import messageService from "../../services/message.service.js";
 import {
   Search,
   Bell,
@@ -16,37 +18,76 @@ import {
   Briefcase,
   Camera,
   LogOut,
-} from 'lucide-react';
-import Button from '../common/Button.jsx';
+  Bookmark,
+} from "lucide-react";
+import Button from "../common/Button.jsx";
 
 export const Navbar = () => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
-  const { unreadCount } = useSelector((state) => state.notifications);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const fetchCounts = async () => {
+      try {
+        const res = await messageService.getUnreadCounts();
+        if (res.data) {
+          setUnreadMessages(res.data.unreadMessages || 0);
+          setUnreadNotifications(res.data.unreadNotifications || 0);
+        }
+      } catch (err) {
+        // Silently ignore
+      }
+    };
+
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, user]);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (e) {
+      // Continue client logout
+    }
     dispatch(logout());
     setProfileDropdownOpen(false);
-    navigate('/login');
+    navigate("/login");
   };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
+      setSearchQuery("");
     }
   };
+
   const avatarUrl =
     user?.avatarUrl ||
-    `https://ui-avatars.com/api/?name=${user?.firstName}+${user?.lastName}&background=7D1E3B&color=fff&size=200`;
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      user?.firstName || "User",
+    )}+${encodeURIComponent(user?.lastName || "")}&background=722F45&color=fff&size=200`;
+
+  const isCreator = Boolean(
+    user?.capabilities?.isCreator || user?.role === "admin",
+  );
+  const isVendor = Boolean(
+    user?.capabilities?.isVendor || user?.role === "admin",
+  );
+  const isAdmin = user?.role === "admin";
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-burgundy/10 shadow-soft">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-burgundy/10 shadow-soft">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
@@ -64,7 +105,10 @@ export const Navbar = () => {
         </Link>
 
         {/* Global Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-4">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="hidden md:flex flex-1 max-w-md mx-4"
+        >
           <div className="relative w-full">
             <Search className="w-4 h-4 text-mutedGray absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -82,16 +126,25 @@ export const Navbar = () => {
           <Link to="/explore" className="hover:text-burgundy transition-colors">
             Inspiration
           </Link>
-          <Link to="/categories" className="hover:text-burgundy transition-colors">
+          <Link
+            to="/categories"
+            className="hover:text-burgundy transition-colors"
+          >
             Categories
           </Link>
           <Link to="/vendors" className="hover:text-burgundy transition-colors">
             Marketplace
           </Link>
-          <Link to="/creators" className="hover:text-burgundy transition-colors">
+          <Link
+            to="/creators"
+            className="hover:text-burgundy transition-colors"
+          >
             Creators
           </Link>
-          <Link to="/my-wedding" className="flex items-center gap-1.5 text-burgundy font-semibold hover:text-burgundy-600 transition-colors">
+          <Link
+            to="/my-wedding"
+            className="flex items-center gap-1.5 text-burgundy font-semibold hover:text-burgundy-600 transition-colors"
+          >
             <CalendarHeart className="w-4 h-4 text-rose" />
             <span>Wedding Planner</span>
           </Link>
@@ -101,25 +154,32 @@ export const Navbar = () => {
         <div className="hidden sm:flex items-center gap-3">
           {isAuthenticated && user ? (
             <div className="flex items-center gap-2">
+              {/* Notifications with dynamic 9+ badge */}
               <Link
                 to="/notifications"
                 className="relative p-2 rounded-full text-charcoal hover:bg-rose-50 transition-colors"
                 title="Notifications"
               >
                 <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
+                {unreadNotifications > 0 && (
                   <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-burgundy text-white text-[10px] font-bold flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
                   </span>
                 )}
               </Link>
 
+              {/* Messages with dynamic 9+ badge */}
               <Link
                 to="/messages"
-                className="p-2 rounded-full text-charcoal hover:bg-rose-50 transition-colors"
+                className="relative p-2 rounded-full text-charcoal hover:bg-rose-50 transition-colors"
                 title="Messages"
               >
                 <MessageSquare className="w-5 h-5" />
+                {unreadMessages > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-burgundy text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
               </Link>
 
               {/* Profile Dropdown */}
@@ -137,10 +197,15 @@ export const Navbar = () => {
                 </button>
 
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-60 rounded-2xl glass-dropdown shadow-luxury border border-burgundy/10 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 mt-2 w-64 rounded-2xl glass-dropdown shadow-luxury border border-burgundy/10 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-3 py-2 border-b border-charcoal/5 mb-1">
-                      <p className="text-sm font-semibold text-charcoal">{user.displayName || user.firstName}</p>
-                      <p className="text-xs text-mutedGray truncate">{user.email}</p>
+                      <p className="text-sm font-semibold text-charcoal truncate">
+                        {user.displayName ||
+                          `${user.firstName} ${user.lastName}`}
+                      </p>
+                      <p className="text-xs text-mutedGray truncate">
+                        {user.email}
+                      </p>
                     </div>
 
                     <Link
@@ -158,37 +223,50 @@ export const Navbar = () => {
                       className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-charcoal hover:bg-rose-50 rounded-lg transition-colors"
                     >
                       <CalendarHeart className="w-4 h-4 text-rose" />
-                      My Wedding Workspace
+                      Wedding Workspace
                     </Link>
 
-                    <Link
-                      to="/creator/dashboard"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-charcoal hover:bg-rose-50 rounded-lg transition-colors"
-                    >
-                      <Camera className="w-4 h-4 text-gold-600" />
-                      Creator Studio
-                    </Link>
+                    {isCreator && (
+                      <Link
+                        to="/creator/dashboard"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-charcoal hover:bg-rose-50 rounded-lg transition-colors"
+                      >
+                        <Camera className="w-4 h-4 text-gold" />
+                        Creator Studio
+                      </Link>
+                    )}
 
-                    <Link
-                      to="/vendor/dashboard"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-charcoal hover:bg-rose-50 rounded-lg transition-colors"
-                    >
-                      <Briefcase className="w-4 h-4 text-charcoal" />
-                      Vendor Business Hub
-                    </Link>
+                    {isVendor && (
+                      <Link
+                        to="/vendor/dashboard"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-charcoal hover:bg-rose-50 rounded-lg transition-colors"
+                      >
+                        <Briefcase className="w-4 h-4 text-charcoal" />
+                        Vendor Hub
+                      </Link>
+                    )}
 
-                    {user.role === 'admin' && (
+                    {isAdmin && (
                       <Link
                         to="/admin/dashboard"
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-burgundy font-semibold hover:bg-burgundy/5 rounded-lg transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-burgundy hover:bg-burgundy/5 rounded-lg transition-colors"
                       >
                         <ShieldCheck className="w-4 h-4 text-burgundy" />
-                        Admin Dashboard
+                        Admin Governance
                       </Link>
                     )}
+
+                    <Link
+                      to="/saved"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-charcoal hover:bg-rose-50 rounded-lg transition-colors"
+                    >
+                      <Bookmark className="w-4 h-4 text-mutedGray" />
+                      Saved Moodboards
+                    </Link>
 
                     <Link
                       to="/profile"
@@ -196,7 +274,7 @@ export const Navbar = () => {
                       className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-charcoal hover:bg-rose-50 rounded-lg transition-colors"
                     >
                       <User className="w-4 h-4 text-mutedGray" />
-                      My Profile & Saved
+                      My Profile
                     </Link>
 
                     <div className="pt-1 mt-1 border-t border-charcoal/5">
@@ -235,7 +313,11 @@ export const Navbar = () => {
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="lg:hidden p-2 text-charcoal hover:text-burgundy"
         >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {mobileMenuOpen ? (
+            <X className="w-6 h-6" />
+          ) : (
+            <Menu className="w-6 h-6" />
+          )}
         </button>
       </div>
 
@@ -247,19 +329,20 @@ export const Navbar = () => {
               <Search className="w-4 h-4 text-mutedGray absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search venues, gowns, creators..."
                 className="w-full pl-10 pr-4 py-2 text-xs rounded-full bg-ivory-100 border border-charcoal/10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </form>
+
           <Link
             to="/explore"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-medium text-charcoal hover:text-burgundy"
           >
-            Inspiration
+            Inspiration Feed
           </Link>
           <Link
             to="/categories"
@@ -290,14 +373,103 @@ export const Navbar = () => {
             Wedding Planner Workspace
           </Link>
 
+          <Link
+            to="/profile"
+            onClick={() => setProfileDropdownOpen(false)}
+            className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-charcoal hover:bg-rose-50 rounded-lg transition-colors"
+          >
+            <User className="w-4 h-4 text-mutedGray" />
+            My Profile
+          </Link>
+
+          {isAuthenticated && user && (
+            <div className="pt-3 border-t border-sand/40 space-y-2">
+              <Link
+                to="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 py-1.5 text-xs font-medium text-charcoal"
+              >
+                <Sparkles className="w-4 h-4 text-burgundy" /> Home Feed
+              </Link>
+              <Link
+                to="/messages"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between py-1.5 text-xs font-medium text-charcoal"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-burgundy" /> Messages
+                </div>
+                {unreadMessages > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-burgundy text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
+              </Link>
+              <Link
+                to="/notifications"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between py-1.5 text-xs font-medium text-charcoal"
+              >
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-burgundy" /> Notifications
+                </div>
+                {unreadNotifications > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-burgundy text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                )}
+              </Link>
+              {isCreator && (
+                <Link
+                  to="/creator/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 py-1.5 text-xs font-medium text-charcoal"
+                >
+                  <Camera className="w-4 h-4 text-gold" /> Creator Studio
+                </Link>
+              )}
+              {isVendor && (
+                <Link
+                  to="/vendor/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 py-1.5 text-xs font-medium text-charcoal"
+                >
+                  <Briefcase className="w-4 h-4 text-charcoal" /> Vendor Hub
+                </Link>
+              )}
+              <Link
+                to="/saved"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 py-1.5 text-xs font-medium text-charcoal"
+              >
+                <Bookmark className="w-4 h-4 text-mutedGray" /> Saved Moodboards
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 py-1.5 text-xs font-medium text-red-600 pt-2"
+              >
+                <LogOut className="w-4 h-4" /> Sign Out
+              </button>
+            </div>
+          )}
+
           {!isAuthenticated && (
             <div className="pt-4 border-t border-charcoal/5 flex gap-2">
-              <Link to="/login" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+              <Link
+                to="/login"
+                className="flex-1"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 <Button variant="outline" className="w-full" size="sm">
                   Sign In
                 </Button>
               </Link>
-              <Link to="/register" className="flex-1" onClick={() => setMobileMenuOpen(false)}>
+              <Link
+                to="/register"
+                className="flex-1"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 <Button variant="primary" className="w-full" size="sm">
                   Register
                 </Button>

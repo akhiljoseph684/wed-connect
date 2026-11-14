@@ -43,6 +43,15 @@ router.delete('/services/:serviceId', authenticate, businessController.deleteSer
 
 // Portfolio & Availability
 router.post('/:businessId/portfolio', authenticate, businessController.addPortfolio);
+router.delete('/:businessId/portfolio/:itemId', authenticate, businessController.deletePortfolio);
 router.put('/:businessId/availability', authenticate, businessController.updateAvailability);
+router.post('/:businessId/availability/entries', authenticate, businessController.addAvailabilityEntry);
+router.patch('/:businessId/availability/entries/:entryId', authenticate, businessController.updateAvailabilityEntry);
+router.delete('/:businessId/availability/entries/:entryId', authenticate, businessController.deleteAvailabilityEntry);
+
+// Analytics & Settings
+router.get('/:businessId/dashboard-stats', authenticate, businessController.getVendorDashboardStats);
+router.get('/:businessId/analytics', authenticate, businessController.getVendorAnalytics);
+router.patch('/:businessId/settings', authenticate, businessController.updateVendorSettings);
 
 export default router;

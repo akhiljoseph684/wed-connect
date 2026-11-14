@@ -32,7 +32,8 @@ export default function UserPublicProfilePage() {
           userService.getProfile(userId),
           userService.getUserPosts(userId),
         ]);
-        const u = userRes.data?.user || userRes.data;
+        console.log(userRes)
+        const u = userRes.data;
         setProfileUser(u);
         setPosts(postsRes.data?.posts || []);
         setIsFollowing(Boolean(u?.isFollowing));
@@ -55,10 +56,24 @@ export default function UserPublicProfilePage() {
       if (isFollowing) {
         await userService.unfollowUser(userId);
         setIsFollowing(false);
+        setProfileUser((prev) => ({
+          ...prev,
+          stats: {
+            ...prev?.stats,
+            followersCount: Math.max(0, (prev?.stats?.followersCount || 1) - 1),
+          },
+        }));
         toast.success(`Unfollowed ${profileUser?.firstName}`);
       } else {
         await userService.followUser(userId);
         setIsFollowing(true);
+        setProfileUser((prev) => ({
+          ...prev,
+          stats: {
+            ...prev?.stats,
+            followersCount: (prev?.stats?.followersCount || 0) + 1,
+          },
+        }));
         toast.success(`Following ${profileUser?.firstName}`);
       }
     } catch (err) {
@@ -185,13 +200,13 @@ export default function UserPublicProfilePage() {
             </div>
             <div>
               <span className="font-bold text-charcoal">
-                {profileUser?.followersCount || 0}
+                {profileUser?.stats?.followersCount || 0}
               </span>{" "}
               <span className="text-xs text-gray-500">followers</span>
             </div>
             <div>
               <span className="font-bold text-charcoal">
-                {profileUser?.followingCount || 0}
+                {profileUser?.stats?.followingCount || 0}
               </span>{" "}
               <span className="text-xs text-gray-500">following</span>
             </div>

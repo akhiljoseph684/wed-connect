@@ -54,15 +54,6 @@ const postSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-    likesCount: {
-      type: Number,
-      default: 0,
-      index: true,
-    },
-    commentsCount: {
-      type: Number,
-      default: 0,
-    },
     savesCount: {
       type: Number,
       default: 0,

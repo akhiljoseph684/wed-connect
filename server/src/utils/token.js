@@ -36,9 +36,24 @@ export const verifyRefreshToken = (token) => {
   return jwt.verify(token, REFRESH_SECRET);
 };
 
-export const cookieOptions = {
+export const accessTokenCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge: 15 * 60 * 1000, // 15 minutes
+};
+
+export const refreshTokenCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
+
+export const clearCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+};
+
+export const cookieOptions = refreshTokenCookieOptions;

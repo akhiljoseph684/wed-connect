@@ -3,7 +3,6 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { PostCard } from '../../components/cards/PostCard.jsx';
 import { PostCardSkeleton } from '../../components/common/Skeleton.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
-import SaveToCollectionModal from '../../components/modals/SaveToCollectionModal.jsx';
 import { postService } from '../../services/post.service.js';
 import { categoryService } from '../../services/category.service.js';
 import { Sparkles, SlidersHorizontal } from 'lucide-react';
@@ -14,7 +13,6 @@ export const ExplorePage = ({ feedType = 'for-you' }) => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
-  const [savedModalPost, setSavedModalPost] = useState(null);
 
   useEffect(() => {
     categoryService.getCategories().then((res) => setCategories(res.data || [])).catch(() => {});
@@ -106,22 +104,9 @@ export const ExplorePage = ({ feedType = 'for-you' }) => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {posts.map((post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              onSaveClick={(p) => setSavedModalPost(p)}
-            />
+            <PostCard key={post._id} post={post} />
           ))}
         </div>
-      )}
-
-      {/* Save to Collection Modal */}
-      {savedModalPost && (
-        <SaveToCollectionModal
-          isOpen={!!savedModalPost}
-          onClose={() => setSavedModalPost(null)}
-          post={savedModalPost}
-        />
       )}
     </div>
   );

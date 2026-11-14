@@ -33,17 +33,17 @@ export default function GuestsPage() {
 
   const handleUpdateRsvp = async (guestId, newStatus) => {
     try {
-      await guestService.updateRsvp(guestId, newStatus);
+      await guestService.updateRsvp(guestId, newStatus, planId);
       setGuests(prev => prev.map(g => g._id === guestId ? { ...g, rsvpStatus: newStatus } : g));
       toast.success('RSVP updated');
     } catch (err) {
-      toast.error('Failed to update RSVP');
+      toast.error(err.message || 'Failed to update RSVP');
     }
   };
 
   const handleDelete = async (guestId) => {
     try {
-      await guestService.deleteGuest(guestId);
+      await guestService.deleteGuest(guestId, planId);
       setGuests(prev => prev.filter(g => g._id !== guestId));
       toast.success('Guest removed');
     } catch (err) {

@@ -9,6 +9,8 @@ export const adminService = {
   getAuditLogs: (params) => api.get('/admin/audit-logs', { params }),
   getReports: (params) => api.get('/admin/reports', { params }),
   resolveReport: (reportId, data) => api.patch(`/admin/reports/${reportId}/resolve`, data),
+  getSettings: () => api.get('/admin/settings'),
+  updateSettings: (data) => api.patch('/admin/settings', data),
 };
 
 export default adminService;

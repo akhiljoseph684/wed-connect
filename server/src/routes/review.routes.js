@@ -20,6 +20,7 @@ router.post(
 );
 
 router.post('/review/:reviewId/reply', authenticate, reviewController.replyReview);
+router.patch('/review/:reviewId', authenticate, reviewController.updateReview);
 router.delete('/review/:reviewId', authenticate, reviewController.deleteReview);
 
 export default router;

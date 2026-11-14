@@ -76,6 +76,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       select: false,
     },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
     resetPasswordToken: {
       type: String,
       select: false,
@@ -83,6 +87,10 @@ const userSchema = new mongoose.Schema(
     resetPasswordExpires: {
       type: Date,
       select: false,
+    },
+    notificationPreferences: {
+      emailNotifications: { type: Boolean, default: true },
+      pushNotifications: { type: Boolean, default: true },
     },
     isSuspended: {
       type: Boolean,

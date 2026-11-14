@@ -48,7 +48,7 @@ export default function VendorEnquiriesPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
                   <h3 className="font-semibold text-charcoal text-base">
-                    {enq.coupleName || enq.sender?.firstName || 'Couple Inquiry'}
+                    {enq.coupleNames || enq.coupleName || `${enq.userId?.firstName || ''} ${enq.userId?.lastName || ''}`.trim() || 'Couple Inquiry'}
                   </h3>
                   <span className={`text-xs px-2.5 py-0.5 rounded-full capitalize font-semibold ${
                     enq.status === 'confirmed'

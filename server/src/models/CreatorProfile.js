@@ -65,8 +65,11 @@ const creatorProfileSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    acceptingBrandCollaborations: {
+      type: Boolean,
+      default: false,
+    },
     stats: {
-      followersCount: { type: Number, default: 0 },
       likesCount: { type: Number, default: 0 },
       viewsCount: { type: Number, default: 0 },
       collaborationsCount: { type: Number, default: 0 },

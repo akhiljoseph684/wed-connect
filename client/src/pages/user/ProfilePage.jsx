@@ -22,16 +22,22 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState([]);
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState({});
 
   useEffect(() => {
     if (!user?._id) return;
     const fetchProfileData = async () => {
       setLoading(true);
       try {
-        const [postsRes, collRes] = await Promise.allSettled([
+        const [userRes, postsRes, collRes] = await Promise.allSettled([
+          userService.getProfile(user._id),
           userService.getUserPosts(user._id),
           collectionService.getMyCollections(),
         ]);
+        console.log(postsRes)
+        if (userRes.status === "fulfilled") {
+          setProfile(userRes.value.data || []);
+        }
         if (postsRes.status === "fulfilled") {
           setPosts(postsRes.value.data?.posts || []);
         }
@@ -48,8 +54,8 @@ export default function ProfilePage() {
   }, [user?._id]);
 
   const avatarUrl =
-    user?.avatarUrl ||
-    `https://ui-avatars.com/api/?name=${user?.firstName}+${user?.lastName}&background=7D1E3B&color=fff&size=200`;
+    profile?.avatarUrl ||
+    `https://ui-avatars.com/api/?name=${profile?.firstName}+${profile?.lastName}&background=7D1E3B&color=fff&size=200`;
 
   return (
     <div className="space-y-6">
@@ -58,17 +64,17 @@ export default function ProfilePage() {
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <img
             src={avatarUrl}
-            alt={user?.firstName}
+            alt={profile?.firstName}
             className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-rose/20 shadow-soft"
           />
           <div className="flex-1 text-center sm:text-left space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h1 className="font-playfair text-2xl sm:text-3xl font-bold text-charcoal">
-                  {user?.firstName} {user?.lastName}
+                  {profile?.firstName} {profile?.lastName}
                 </h1>
                 <p className="text-gray-500 text-sm">
-                  @{user?.username || user?.email?.split("@")[0]}
+                  @{profile?.username || profile?.email?.split("@")[0]}
                 </p>
               </div>
               <div className="flex items-center justify-center sm:justify-end gap-2">
@@ -88,31 +94,31 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {user?.bio && (
-              <p className="text-sm text-gray-600 max-w-xl">{user.bio}</p>
+            {profile?.bio && (
+              <p className="text-sm text-gray-600 max-w-xl">{profile.bio}</p>
             )}
 
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-gray-500 pt-1">
-              {user?.location && (
+              {profile?.location && (
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-burgundy" />
                   {[
-                    user.location?.city,
-                    user.location?.state,
-                    user.location?.country,
+                    profile.location?.city,
+                    profile.location?.state,
+                    profile.location?.country,
                   ]
                     .filter(Boolean)
                     .join(", ")}
                 </span>
               )}
-              {user?.weddingDate && (
+              {profile?.weddingDate && (
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5 text-burgundy" /> Wedding:{" "}
-                  {new Date(user.weddingDate).toLocaleDateString()}
+                  {new Date(profile.weddingDate).toLocaleDateString()}
                 </span>
               )}
               <span className="capitalize px-2.5 py-0.5 rounded-full bg-gold/15 text-charcoal font-medium">
-                {user?.role}
+                {profile?.role}
               </span>
             </div>
 
@@ -124,13 +130,13 @@ export default function ProfilePage() {
               </div>
               <div>
                 <span className="font-bold text-charcoal">
-                  {user?.followersCount || 0}
+                  {profile?.stats?.followersCount || 0}
                 </span>{" "}
                 <span className="text-xs text-gray-500">followers</span>
               </div>
               <div>
                 <span className="font-bold text-charcoal">
-                  {user?.followingCount || 0}
+                  {profile?.stats?.followingCount || 0}
                 </span>{" "}
                 <span className="text-xs text-gray-500">following</span>
               </div>

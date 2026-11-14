@@ -82,10 +82,6 @@ const businessSchema = new mongoose.Schema(
       default: 0,
       index: true,
     },
-    rating: {
-      average: { type: Number, default: 0, min: 0, max: 5 },
-      count: { type: Number, default: 0 },
-    },
     verificationStatus: {
       type: String,
       enum: ['pending', 'approved', 'rejected', 'resubmission'],
@@ -113,8 +109,25 @@ const businessSchema = new mongoose.Schema(
     ],
     availability: {
       acceptingBookings: { type: Boolean, default: true },
-      bookedDates: [{ type: Date }],
       noticePeriodWeeks: { type: Number, default: 2 },
+      blockedDates: [{ type: String }],
+      entries: [
+        {
+          _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
+          date: { type: String, required: true },
+          status: { type: String, enum: ['booked', 'unavailable', 'tentative'], default: 'booked' },
+          notes: { type: String, default: '' },
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+    },
+    settings: {
+      instantEmailAlerts: { type: Boolean, default: true },
+      autoInquiryResponse: { type: Boolean, default: true },
+      autoInquiryMessage: {
+        type: String,
+        default: 'Thank you for reaching out! We have received your inquiry and will respond shortly.',
+      },
     },
     isFeatured: {
       type: Boolean,

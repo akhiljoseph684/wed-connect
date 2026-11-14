@@ -1,10 +1,11 @@
 import { WeddingPlan, WeddingPlanMember, Task, Expense, Guest, Business, User } from '../models/index.js';
 import { ApiError } from '../utils/apiResponse.js';
+import { sendCollaborationInviteEmail } from '../utils/email.js';
 
 export const getUserWeddingPlans = async (userId) => {
   const [ownedPlans, memberPlans] = await Promise.all([
-    WeddingPlan.find({ ownerId: userId }).sort({ createdAt: -1 }),
-    WeddingPlanMember.find({ userId, status: 'accepted' }).populate('planId'),
+    WeddingPlan.find({ ownerId: userId }).sort({ createdAt: -1 }).lean(),
+    WeddingPlanMember.find({ userId, status: 'accepted' }).populate('planId').lean(),
   ]);
 
   const plansMap = new Map();
@@ -15,7 +16,23 @@ export const getUserWeddingPlans = async (userId) => {
     }
   });
 
-  return Array.from(plansMap.values());
+  const planList = Array.from(plansMap.values());
+  const planIds = planList.map((p) => p._id);
+
+  if (planIds.length === 0) return [];
+
+  // Issue 19: Aggregate guestCount for each wedding plan
+  const guestCounts = await Guest.aggregate([
+    { $match: { planId: { $in: planIds } } },
+    { $group: { _id: '$planId', count: { $sum: 1 } } },
+  ]);
+
+  const guestCountMap = new Map(guestCounts.map((g) => [g._id.toString(), g.count]));
+
+  return planList.map((plan) => ({
+    ...plan,
+    guestCount: guestCountMap.get(plan._id.toString()) || 0,
+  }));
 };
 
 export const createWeddingPlan = async (ownerId, planData) => {
@@ -88,7 +105,7 @@ export const createWeddingPlan = async (ownerId, planData) => {
 };
 
 export const getWeddingPlanDetails = async (planId) => {
-  const plan = await WeddingPlan.findById(planId).populate('savedVendorIds', 'name slug logoUrl rating startingPrice location');
+  const plan = await WeddingPlan.findById(planId).populate('savedVendorIds', 'name slug logoUrl rating startingPrice location coverImageUrl portfolio categoryId').populate("savedVendorIds.categoryId");
   if (!plan) throw new ApiError(404, 'Wedding plan not found');
 
   const [tasks, expenses, guests, members] = await Promise.all([
@@ -214,7 +231,10 @@ export const deleteTimelineEvent = async (planId, eventIndex) => {
   return plan.timelineEvents;
 };
 
-export const addPlanMember = async (planId, email, role = 'collaborator') => {
+export const addPlanMember = async (planId, email, role = 'collaborator', inviterUser = null) => {
+  const plan = await WeddingPlan.findById(planId);
+  if (!plan) throw new ApiError(404, 'Wedding plan not found');
+
   const user = await User.findOne({ email: email.toLowerCase() });
   if (!user) throw new ApiError(404, `No WedConnect user found with email ${email}`);
 
@@ -228,5 +248,58 @@ export const addPlanMember = async (planId, email, role = 'collaborator') => {
     status: 'accepted',
   });
 
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  sendCollaborationInviteEmail({
+    toEmail: user.email,
+    planTitle: plan.title,
+    inviterName: inviterUser?.firstName || 'A couple',
+    role,
+    inviteUrl: `${clientUrl}/my-wedding/${planId}`,
+  }).catch((err) => {
+    console.error(`[Collab Email Warning] Failed to send email to ${user.email}:`, err.message);
+  });
+
+  return await member.populate('userId', 'firstName lastName email avatarUrl');
+};
+
+export const removePlanMember = async (planId, memberId, requestingUserId) => {
+  const plan = await WeddingPlan.findById(planId);
+  if (!plan) throw new ApiError(404, 'Wedding plan not found');
+
+  // Verify owner or admin
+  const isOwner = plan.ownerId.toString() === requestingUserId.toString();
+  if (!isOwner) {
+    throw new ApiError(403, 'Only the wedding plan owner can remove collaborators.');
+  }
+
+  const member = await WeddingPlanMember.findById(memberId);
+  if (!member || member.planId.toString() !== planId.toString()) {
+    throw new ApiError(404, 'Member record not found');
+  }
+
+  if (member.role === 'owner') {
+    throw new ApiError(400, 'Cannot remove the owner from their wedding workspace.');
+  }
+
+  await WeddingPlanMember.findByIdAndDelete(memberId);
+  return true;
+};
+
+export const updatePlanMemberRole = async (planId, memberId, newRole, requestingUserId) => {
+  const plan = await WeddingPlan.findById(planId);
+  if (!plan) throw new ApiError(404, 'Wedding plan not found');
+
+  const isOwner = plan.ownerId.toString() === requestingUserId.toString();
+  if (!isOwner) {
+    throw new ApiError(403, 'Only the wedding plan owner can modify collaborator permissions.');
+  }
+
+  const member = await WeddingPlanMember.findById(memberId);
+  if (!member || member.planId.toString() !== planId.toString()) {
+    throw new ApiError(404, 'Member record not found');
+  }
+
+  member.role = newRole;
+  await member.save();
   return await member.populate('userId', 'firstName lastName email avatarUrl');
 };

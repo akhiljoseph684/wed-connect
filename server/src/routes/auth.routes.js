@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import * as authController from '../controllers/auth.controller.js';
-import { authenticate } from '../middlewares/auth.middleware.js';
+import { authenticate, optionalAuth } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 
 const router = Router();
@@ -28,10 +28,13 @@ router.post(
   authController.login
 );
 
-router.post('/logout', authenticate, authController.logout);
+router.post('/logout', optionalAuth, authController.logout);
 router.post('/refresh', authController.refresh);
 router.get('/me', authenticate, authController.getMe);
 router.post('/verify-email', authController.verifyEmail);
+router.get('/verify-email/:token', authController.verifyEmail);
+router.post('/verify-email/:token', authController.verifyEmail);
+router.post('/resend-verification', optionalAuth, authController.resendVerification);
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 

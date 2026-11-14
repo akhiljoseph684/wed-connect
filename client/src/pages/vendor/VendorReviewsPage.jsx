@@ -53,7 +53,7 @@ export default function VendorReviewsPage() {
           <Star className="w-6 h-6 text-amber-500 fill-amber-500" /> Client Reviews & Ratings
         </h1>
         <p className="text-sm text-gray-500">
-          Average rating: {business?.rating?.average?.toFixed(1) || '5.0'} / 5.0 ({reviews.length} reviews)
+          Average rating: {business?.averageRating?.toFixed(1) || business?.rating?.average?.toFixed(1) || '5.0'} / 5.0 ({reviews.length} reviews)
         </p>
       </div>
 

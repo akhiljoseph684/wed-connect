@@ -2,8 +2,13 @@ import * as messageService from '../services/message.service.js';
 import { ApiResponse, asyncHandler } from '../utils/apiResponse.js';
 
 export const getConversations = asyncHandler(async (req, res) => {
-  const conversations = await messageService.getUserConversations(req.user._id);
+  const conversations = await messageService.getUserConversations(req.user._id, req.query.search);
   return res.status(200).json(new ApiResponse(200, conversations, 'Conversations retrieved'));
+});
+
+export const getUnreadCounts = asyncHandler(async (req, res) => {
+  const counts = await messageService.getUnreadCounts(req.user._id);
+  return res.status(200).json(new ApiResponse(200, counts, 'Unread counts retrieved'));
 });
 
 export const startConversation = asyncHandler(async (req, res) => {

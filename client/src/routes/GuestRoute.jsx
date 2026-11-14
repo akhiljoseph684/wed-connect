@@ -10,16 +10,7 @@ export const GuestRoute = ({ children }) => {
   }
 
   if (isAuthenticated && user) {
-    if (user.role === 'admin' || user.role === 'moderator') {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-    if (user.role === 'vendor' || user.capabilities?.isVendor) {
-      return <Navigate to="/vendor/dashboard" replace />;
-    }
-    if (user.role === 'creator' || user.capabilities?.isCreator) {
-      return <Navigate to="/creator/dashboard" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children ?? <Outlet />;

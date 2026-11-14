@@ -3,11 +3,13 @@ import { Tag, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import categoryService from '../../services/category.service.js';
 import Modal from '../../components/common/Modal.jsx';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog.jsx';
 
 export default function CategoryManagementPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteCategoryId, setDeleteCategoryId] = useState(null);
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -54,14 +56,16 @@ export default function CategoryManagementPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this category?')) return;
+  const confirmDeleteCategory = async () => {
+    if (!deleteCategoryId) return;
     try {
-      await categoryService.deleteCategory(id);
-      setCategories(prev => prev.filter(c => c._id !== id));
+      await categoryService.deleteCategory(deleteCategoryId);
+      setCategories((prev) => prev.filter((c) => c._id !== deleteCategoryId));
       toast.success('Category deleted');
     } catch (err) {
       toast.error('Failed to delete category');
+    } finally {
+      setDeleteCategoryId(null);
     }
   };
 
@@ -96,7 +100,7 @@ export default function CategoryManagementPage() {
                 {cat.description && <p className="text-xs text-gray-500 mt-2 line-clamp-2">{cat.description}</p>}
               </div>
               <button
-                onClick={() => handleDelete(cat._id)}
+                onClick={() => setDeleteCategoryId(cat._id)}
                 className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors"
                 title="Delete category"
               >
@@ -166,6 +170,16 @@ export default function CategoryManagementPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmationDialog
+        isOpen={Boolean(deleteCategoryId)}
+        onClose={() => setDeleteCategoryId(null)}
+        onConfirm={confirmDeleteCategory}
+        title="Delete Category"
+        message="Are you sure you want to delete this taxonomy category? Vendors and inspiration tagged with this category will no longer be linked to it."
+        confirmText="Delete Category"
+        isDestructive={true}
+      />
     </div>
   );
 }

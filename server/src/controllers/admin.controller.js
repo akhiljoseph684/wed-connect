@@ -44,3 +44,13 @@ export const resolveReport = asyncHandler(async (req, res) => {
   const result = await adminService.resolveReport(req.params.id, req.body, req.user._id);
   return res.status(200).json(new ApiResponse(200, result, 'Report resolved'));
 });
+
+export const getPlatformSettings = asyncHandler(async (req, res) => {
+  const settings = await adminService.getPlatformSettings();
+  return res.status(200).json(new ApiResponse(200, settings, 'Platform settings retrieved'));
+});
+
+export const updatePlatformSettings = asyncHandler(async (req, res) => {
+  const settings = await adminService.updatePlatformSettings(req.body, req.user._id);
+  return res.status(200).json(new ApiResponse(200, settings, 'Platform settings updated'));
+});
